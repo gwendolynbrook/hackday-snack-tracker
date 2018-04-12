@@ -4,33 +4,44 @@ import (
 	"database/sql"
 	"time"
 	"log"
+	"os"
+	"fmt"
 
-	. "github.com/mattn/go-sqlite3"
+	_ "github.com/mattn/go-sqlite3"
 
 	"app/src/snacks.maidbot.io/domain"
 )
 
 type InventoryData interface {
 	CreateInventoryChange(inventoryChange *domain.InventoryChange) (*domain.InventoryChange, error)
-	GetInventoryChangesByTime(createdAfter int, createdBefore int) ([]*domain.InventoryChange, error)
-	DeleteInventoryChangesByTime(createdAfter int, createdBefore int) error
+	GetInventoryChangesByTime(createdAfter int64, createdBefore int64) ([]*domain.InventoryChange, error)
+	DeleteInventoryChangesByTime(createdAfter int64, createdBefore int64) error
 
 	CreateItem(item *domain.Item) (*domain.Item, error)
 	UpdateItem(item *domain.Item) (*domain.Item, error)
-	GetItem(code int) (*domain.Item, error)
-	GetItem(name string) (*domain.Item, error)
-	GetItemsByUpdatedTime(updatedAfter int, updatedBefore int) ([]*domain.Item, error)
+	GetItemByCode(code int) (*domain.Item, error)
+	GetItemByName(name string) (*domain.Item, error)
+	GetItemsByUpdatedTime(updatedAfter int64, updatedBefore int64) ([]*domain.Item, error)
 
-	currentMillis() int
+	currentMillis() int64
 }
 
 // This factory function is your "constructor" for your data layer.
-func NewInventoryDataSqlite3(dataSourceName string) (InventoryData, error) {
-	db, err := sql.Open("sqlite3", "/data/inventory.db")
-	statement, _ := db.Prepare("CREATE TABLE IF NOT EXISTS inventory_changes (created_at integer PRIMARY KEY, quantity integer NOT NULL, direction integer NOT NULL, item_code integer NOT NULL)")
+func NewInventoryData() (InventoryData, error) {
+	data_dir := os.Getenv(DATA_DIR_ENV)
+	os.MkdirAll(data_dir, 0755)
+  os.Create(data_dir + "/inventory.db")
+	fmt.Println("Using data dir : " + data_dir)
+	db, err := sql.Open("sqlite3", data_dir + "/inventory.db")
+	log.Print(err)
+	statement, stmtErr := db.Prepare("CREATE TABLE IF NOT EXISTS inventory_changes (created_at integer PRIMARY KEY, quantity integer NOT NULL, direction integer NOT NULL, item_code text NOT NULL)")
+	log.Print(stmtErr)
 	statement.Exec()
-	statement, _ = database.Prepare("CREATE TABLE IF NOT EXISTS items (code integer PRIMARY KEY, name integer NOT NULL)")
+	statement, stmtErr = db.Prepare("CREATE TABLE IF NOT EXISTS items (code text PRIMARY KEY, name text NOT NULL, created_at integer NOT NULL, updated_at integer NOT_NULL)")
+	log.Print(stmtErr)
 	statement.Exec()
+	db.Close()
+	db, err = sql.Open("sqlite3", data_dir + "/inventory.db")
 
 	if err != nil {
 		return nil, err
@@ -48,7 +59,7 @@ type inventoryData struct {
 	db *sql.DB
 }
 
-func (d *inventoryData) currentMillis() int {
+func (d *inventoryData) currentMillis() int64 {
 	now := time.Now()
 	nanos := now.UnixNano()
 	millis := nanos / 1000000
@@ -56,20 +67,19 @@ func (d *inventoryData) currentMillis() int {
 }
 
 func (d *inventoryData) CreateInventoryChange(inventoryChange *domain.InventoryChange) (*domain.InventoryChange, error) {
-	statement, _ := db.Prepare("INSERT INTO inventory_changes (quantity, direction, item_code, created_at) VALUES (?, ?, ?, ?)")
-	createdAt = d.currentMillis()
-  result, err :=  statement.Exec(inventoryChange.Quantity, inventoryChange.Direction, inventoryChange.ItemCode, createdAt)
+	statement, _ := d.db.Prepare("INSERT INTO inventory_changes (quantity, direction, item_code, created_at) VALUES (?, ?, ?, ?)")
+	createdAt := d.currentMillis()
+  _, err :=  statement.Exec(inventoryChange.Quantity, inventoryChange.Direction, inventoryChange.ItemCode, createdAt)
 	if err != nil {
 		return nil, err
 	}
 
-	inventoryChange.CreatedAt = createdAt
+	inventoryChange.CreatedAt = &createdAt
 	return inventoryChange, nil
 }
 
-func (d *inventoryData) GetInventoryChangesByTime(createdAfter int, createdBefore int) ([]*domain.InventoryChange, error) {
-	statement, _ := db.Prepare("SELECT quantity, direction, item_code, created_at FROM inventory_changes WHERE created_at>=? AND created_at<?")
-	rows, err := statement.Exec(createdAfter, createdBefore)
+func (d *inventoryData) GetInventoryChangesByTime(createdAfter int64, createdBefore int64) ([]*domain.InventoryChange, error) {
+	rows, err := d.db.Query("SELECT quantity, direction, item_code, created_at FROM inventory_changes WHERE created_at>=? AND created_at<?", createdAfter, createdBefore)
 	if err != nil {
 		log.Println("Unable to get changes by date.")
 		return nil, err
@@ -85,9 +95,9 @@ func (d *inventoryData) GetInventoryChangesByTime(createdAfter int, createdBefor
 	return changeList, nil
 }
 
-func (d *inventoryData) DeleteInventoryChangesByTime(createdAfter int, createdBefore int) error {
-	statement, _ := db.Prepare("DELETE FROM inventory_changes WHERE created_at>=? AND created_at<?")
-	rows, err := statement.Exec(createdAfter, createdBefore)
+func (d *inventoryData) DeleteInventoryChangesByTime(createdAfter int64, createdBefore int64) error {
+	statement, err := d.db.Prepare("DELETE FROM inventory_changes WHERE created_at>=? AND created_at<?")
+	_, err = statement.Exec(createdAfter, createdBefore)
 	if err != nil {
 		log.Println("Unable to get delete by date.")
 		return err
@@ -97,57 +107,55 @@ func (d *inventoryData) DeleteInventoryChangesByTime(createdAfter int, createdBe
 }
 
 func (d *inventoryData) CreateItem(item *domain.Item) (*domain.Item, error) {
-	statement, _ := db.Prepare("INSERT INTO items (code, name, created_at, updated_at) VALUES (?, ?, ?, ?)")
-	createdAt = d.currentMillis()
-  result, err :=  statement.Exec(item.Code, item.Name, createdAt, createdAt)
+	statement, _ := d.db.Prepare("INSERT INTO items (code, name, created_at, updated_at) VALUES (?, ?, ?, ?)")
+	createdAt := d.currentMillis()
+  _, err :=  statement.Exec(item.Code, item.Name, createdAt, createdAt)
 	if err != nil {
 		log.Println("Unable to create item.")
 		return nil, err
 	}
 
-	item.CreatedAt = createdAt
-	item.UpdatedAt = createdAt
+	item.CreatedAt = &createdAt
+	item.UpdatedAt = &createdAt
 	return item, nil
 }
 
 func (d *inventoryData) UpdateItem(item *domain.Item) (*domain.Item, error) {
-	statement, _ := db.Prepare("UPDATE items SET name=?, updated_at=? WHERE code=?")
-	updatedAt = d.currentMillis()
-  result, err :=  statement.Exec(item.Name, updatedAt, item.Code)
+	statement, _ := d.db.Prepare("UPDATE items SET name=?, updated_at=? WHERE code=?")
+	updatedAt := d.currentMillis()
+  _, err :=  statement.Exec(item.Name, updatedAt, item.Code)
 	if err != nil {
 		log.Println("Unable to update item.")
 		return nil, err
 	}
 
-	item.UpdatedAt = updatedAt
+	item.UpdatedAt = &updatedAt
 	return item, nil
 }
 
-func (d *inventoryData) GetItem(code int) (*domain.Item, error) {
+func (d *inventoryData) GetItemByCode(code int) (*domain.Item, error) {
 	var item domain.Item
-	err := db.QueryRow("SELECT code, name, created_at, updated_at FROM items WHERE code=?", code).Scan(&item.Code, &item.Name, &item.CreatedAt, &item.UpdatedAt)
+	err := d.db.QueryRow("SELECT code, name, created_at, updated_at FROM items WHERE code=?", code).Scan(&item.Code, &item.Name, &item.CreatedAt, &item.UpdatedAt)
 	if err != nil {
 		log.Println("Unable to get item by id.")
 		return nil, err
 	}
 
-	return item, nil
+	return &item, nil
 }
 
-func (d *inventoryData) GetItem(int code) (*domain.Item, error) {
+func (d *inventoryData) GetItemByName(name string) (*domain.Item, error) {
 	var item domain.Item
-	err := db.QueryRow("SELECT code, name, created_at, updated_at FROM items WHERE Name=?", name).Scan(&item.Code, &item.Name, &item.CreatedAt, &item.UpdatedAt)
+	err := d.db.QueryRow("SELECT code, name, created_at, updated_at FROM items WHERE Name=?", name).Scan(&item.Code, &item.Name, &item.CreatedAt, &item.UpdatedAt)
 	if err != nil {
 		log.Println("Unable to get item by name.")
 		return nil, err
 	}
-
-	return item, nil
+	return &item, nil
 }
 
-func (d *inventoryData) GetItemsByUpdatedTime(createdAfter int, createdBefore int) ([]*domain.Item, error) {
-	statement, _ := db.Prepare("SELECT code, name, created_at, updated_at FROM items WHERE updated_at>=? AND updated_at<?")
-	rows, err := statement.Exec(createdAfter, createdBefore)
+func (d *inventoryData) GetItemsByUpdatedTime(createdAfter int64, createdBefore int64) ([]*domain.Item, error) {
+	rows, err := d.db.Query("SELECT code, name, created_at, updated_at FROM items WHERE updated_at>=? AND updated_at<?", createdAfter, createdBefore)
 	if err != nil {
 		log.Println("Unable to get items by date.")
 		return nil, err
@@ -157,7 +165,7 @@ func (d *inventoryData) GetItemsByUpdatedTime(createdAfter int, createdBefore in
 	for rows.Next() {
 		item := new(domain.Item)
 		err = rows.Scan(&item.Name, &item.Code, &item.CreatedAt, &item.UpdatedAt)
-		itemsList = append(itemsList, inventoryChange)
+		itemsList = append(itemsList, item)
 	}
 
 	return itemsList, nil

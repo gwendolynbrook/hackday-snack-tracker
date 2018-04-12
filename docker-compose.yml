@@ -1,9 +1,10 @@
-version: '2'
+version: '2.2'
 
 services:
-  snacktrackerapi:
+  snacktrackerservice:
       build:
-        dockerfile: ./snack_tracker_service
+        dockerfile: snack_tracker_service/Dockerfile
+        context: .
       ports:
           - "8080:80"
           - "8081:81"
