@@ -1,0 +1,19 @@
+version: '2'
+
+services:
+  snacktrackerapi:
+      build:
+        dockerfile: ./snack_tracker_service
+      ports:
+          - "8080:80"
+          - "8081:81"
+          - "8082:82"
+      env_file: ./snack_tracker_service/local.env
+      volumes:
+        - ./snack_tracker_service/src/snacks.maidbot.io/apps/snacktrackerapi/assets:/go/src/app/src/snacks.maidbot.io/apps/snacktrackerapi/assets
+  #
+  # test:
+  #     image: fleetmanagement_snacktrackerapi:latest
+  #     command: bash -c  "go test -v ./..."
+  #     volumes:
+  #       - ./src/snacks.maidbot.io/domain/test_data:/go/src/app/src/snacks.maidbot.io/domain/test_data
