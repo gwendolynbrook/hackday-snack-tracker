@@ -9,8 +9,8 @@ type InventoryChange struct {
 }
 
 type Item struct {
-  Name            string      `json:"name"`
   Code            string      `json:"code"`
+  Name            string      `json:"name"`
   CreatedAt       *int64      `json:"created_at"`
   UpdatedAt       *int64      `json:"updated_at"`
 }

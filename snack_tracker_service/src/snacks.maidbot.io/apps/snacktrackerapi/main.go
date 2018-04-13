@@ -197,6 +197,7 @@ func (sr *SnackTrackerApiResources) setState(w http.ResponseWriter, r *http.Requ
 		if state_component == "item_code" {
 			sr.snackTrackerState.ItemCode = stateChangeState.ItemCode
 			if sr.snackTrackerState.Mode == &domain.CHECKOUT_MODE {
+				log.Print("Setting new item_code in CHECKOUT mode")
 				var inventoryChange = domain.InventoryChange{1, domain.CHECKOUT_MODE, *sr.snackTrackerState.ItemCode, nil, nil}
 				_, dbErr := sr.inventoryData.CreateInventoryChange(&inventoryChange)
 				sr.snackTrackerState.ItemName = inventoryChange.ItemName
@@ -208,14 +209,13 @@ func (sr *SnackTrackerApiResources) setState(w http.ResponseWriter, r *http.Requ
 				// tmpl.Execute(w, sr.snackTrackerState)
 				// return
 			} else {
+				log.Print("Setting new item_code in INTAKE mode")
 				item, dbErr := sr.inventoryData.GetItemByCode(*sr.snackTrackerState.ItemCode)
 				if dbErr == nil {
 					sr.snackTrackerState.ItemName = &item.Name
 				} else {
 					sr.snackTrackerState.ItemName = nil
 				}
-				tmpl := template.Must(template.ParseFiles(ASSETS_DIR + "templates/add_snack_inventory.html"))
-				tmpl.Execute(w, sr.snackTrackerState)
 			}
 		}
 
@@ -290,17 +290,17 @@ func (sr *SnackTrackerApiResources) addSnackInventoryHandler(w http.ResponseWrit
 	item_count, _ := strconv.Atoi(r.FormValue("item_count"))
 
 	var inventoryChange = domain.InventoryChange{item_count, domain.INTAKE_MODE, item_code, &item_name, nil}
-	_, err := sr.inventoryData.CreateInventoryChange(&inventoryChange)
+	stampedInventoryChange, err := sr.inventoryData.CreateInventoryChange(&inventoryChange)
 
 	if err == nil {
-		sr.snackTrackerState.ItemCode = &item_code
-		sr.snackTrackerState.ItemCode = &item_name
-		sr.snackTrackerState.ItemCount = &item_count
-		tmpl_err := tmpl.Execute(w, sr.snackTrackerState)
-		if(tmpl_err != nil) {
-			log.Print(tmpl_err)
-		}
-		return
+		sr.snackTrackerState.ItemCode = &stampedInventoryChange.ItemCode
+		sr.snackTrackerState.ItemCode = stampedInventoryChange.ItemName
+		sr.snackTrackerState.ItemCount = stampedInventoryChange.Quantity
+	}
+
+	tmpl_err := tmpl.Execute(w, sr.snackTrackerState)
+	if(tmpl_err != nil) {
+		log.Print(tmpl_err)
 	}
 	return
 }
