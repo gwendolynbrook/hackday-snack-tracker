@@ -17,23 +17,25 @@
 <div class="content">
   <div class="row padded">
     <div class="col-md-8">
-      <h2> Maidbot Snacktracker: Add More Snacks to Maidbot's Inventory </h2>
+      <h2> Add Snacks To Inventory </h2>
     </div>
   </div>
   <div class="row padded form">
-    <div class="col-md-4">
+    <div class="col-md-1">
+    </div>
+    <div class="col-md-3">
       <form method="POST" action="/add_snack_inventory">
-        <label for="item_code">Item Code (from Scanner)</label>
+        <label for="item_code">Code From Scanner</label>
         <div id="item_code">
-          <input type="text" name="item_code" value={{.ItemCode}}><br />
+          <input type="text" name="item_code" value={{.ItemCode}} disabled><br />
         </div>
 
-        <label for="current_item_name">Current Item Name</label>
+        <label for="current_item_name">Current Snack Name</label>
         <div id="current_item_name">
           <input type="text" name="current_item_name" value={{.ItemName}} disabled><br />
         </div>
 
-        <label for="item_name">New Item Name</label>
+        <label for="item_name">New Snack Name</label>
         <div id="item_name">
           <input type="text" name="item_name" value={{.ItemName}}><br />
         </div>
@@ -48,32 +50,32 @@
           <input type="text" name="quantity_remaining" value={{.RemainingQuantity}} disabled><br />
         </div>
 
-        <div class="submit-button">
+        <div class="submit-button padded-top">
           <input type="submit" value="Update Inventory!"> <br />
         </div>
       </form>
     </div>
-  </div>
+    <div class="col-md-3">
+        <div class="padded">
+          <button type="button" onclick="putItBack()" class="oops-button">Oops.</button>
+        </div>
 
-
-  <div class="row padded">
-    <div class="col-md-8">
-        <form action="http://localhost:8080/consume_snacks">
-          <input type="submit" value="Consume Snacks!" />
-        </form>
+        <div class="padded">
+          <form action="http://localhost:8080/consume_snacks" class="transition-button">
+            <input type="submit" value="Consume Snacks!" />
+          </form>
+      </div>
     </div>
-
-    <!-- <div class="col-md-4">
-        <button type="button" class="btn btn-danger btn-block">
-            Clear Fields
-            <br/>
-            <br/>
-        </button>
-    </div> -->
   </div>
 </div>
 
 <script type="text/javascript">
+  function putItBack() {
+    var xmlHttp = new XMLHttpRequest();
+    xmlHttp.open( "POST", "http://localhost:8080/inventory_change/undo", false ); // false for synchronous request
+    xmlHttp.send( null );
+  }
+
   function getStateTrackerState()
   {
     var xmlHttp = new XMLHttpRequest();
@@ -85,7 +87,7 @@
   function refreshDiv() { //make sure braces are on the same line as the block statement, it's a good convention in JS
     var stateJson=getStateTrackerState();
     var state=JSON.parse(stateJson)
-    document.getElementById("item_code").innerHTML = '<input type="text" name="item_code" value=' + state.item_code + '><br />';
+    document.getElementById("item_code").innerHTML = '<input type="text" name="item_code" value=' + state.item_code + ' disabled><br />';
     document.getElementById("current_item_name").innerHTML =  '<input type="text" name="current_item_name" value=' + state.item_name + ' disabled><br />';
     document.getElementById("quantity_remaining").innerHTML =  '<input type="text" name="quantity_remaining" value=' + state.remaining_quantity + ' disabled><br />';
     if (state.code_is_new) {

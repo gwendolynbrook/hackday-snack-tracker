@@ -155,7 +155,7 @@ func (sr *SnackTrackerApiResources) undoLastInventoryChange(w http.ResponseWrite
 
 	log.Printf("Putting back the last inventory change for %s : %s", *sr.snackTrackerState.ItemCode, *sr.snackTrackerState.ItemName)
 
-	var inventoryChange = domain.InventoryChange{*sr.snackTrackerState.ItemCount, -1 * (sr.snackTrackerState.Mode), *sr.snackTrackerState.ItemCode, nil, nil}
+	var inventoryChange = domain.InventoryChange{-1 * (*sr.snackTrackerState.ItemCount), sr.snackTrackerState.Mode, *sr.snackTrackerState.ItemCode, nil, nil}
 	dbResult, dbErr := sr.inventoryData.CreateInventoryChange(&inventoryChange)
 	if dbErr != nil {
 		http.Error(w, dbErr.Error(), 500)
@@ -164,10 +164,8 @@ func (sr *SnackTrackerApiResources) undoLastInventoryChange(w http.ResponseWrite
 
 	// Marshal
 	output, err := json.Marshal(dbResult)
-	if sr.snackTrackerState.Mode == domain.CHECKOUT_MODE {
-		sr.snackTrackerState.ItemCode = nil
-	}
-	var remaining = *sr.snackTrackerState.RemainingQuantity - *sr.snackTrackerState.ItemCount
+	sr.snackTrackerState.ItemCode = nil
+	var remaining = *sr.snackTrackerState.RemainingQuantity + -1 * (*sr.snackTrackerState.ItemCount) * sr.snackTrackerState.Mode
 	sr.snackTrackerState.RemainingQuantity = &remaining
 
 	if err != nil {
@@ -266,7 +264,7 @@ func (sr *SnackTrackerApiResources) setState(w http.ResponseWriter, r *http.Requ
 		if state_component == "item_code" {
 			sr.snackTrackerState.ItemCode = stateChangeState.ItemCode
 			if sr.snackTrackerState.Mode == domain.CHECKOUT_MODE {
-				log.Print("Setting new item_code in CHECKOUT mode")
+				log.Printf("Setting new item_code in CHECKOUT mode %s", *sr.snackTrackerState.ItemCode)
 				var inventoryChange = domain.InventoryChange{1, domain.CHECKOUT_MODE, *sr.snackTrackerState.ItemCode, nil, nil}
 				_, dbErr := sr.inventoryData.CreateInventoryChange(&inventoryChange)
 				sr.snackTrackerState.ItemName = inventoryChange.ItemName
@@ -348,6 +346,12 @@ func (sr *SnackTrackerApiResources) addSnackInventoryHandler(w http.ResponseWrit
 	}
 
 	item_code := r.FormValue("item_code")
+	log.Printf("Adding inventory for item code %s", item_code)
+	if item_code == "null" {
+		log.Print("Cannot accept nil item code.")
+		return
+	}
+
 	item_name := r.FormValue("item_name")
 	item_count, _ := strconv.Atoi(r.FormValue("item_count"))
 

@@ -7,9 +7,11 @@ services:
         context: .
       ports:
           - "8080:80"
-          - "8081:81"
-          - "8082:82"
       env_file: ./snack_tracker_api/local.env
+      networks:
+        maidbot-snacktracker:
+          aliases:
+             - snacktrackerapi
       volumes:
         # Enable client tweaks without relaoding container
         - ./snack_tracker_api/src/snacks.maidbot.io/apps/snacktrackerapi/assets:/go/src/app/src/snacks.maidbot.io/apps/snacktrackerapi/assets
@@ -17,9 +19,13 @@ services:
         - ./snack_tracker_api/src/snacks.maidbot.io/data/snacksdb:/go/src/app/src/snacks.maidbot.io/data/snacksdb
         # Persistent cache between containers
         - ./snack_tracker_api/src/snacks.maidbot.io/apps/snacktrackerapi/cache:/go/src/app/src/snacks.maidbot.io/apps/snacktrackerapi/cache
-  #
-  # test:
-  #     image: fleetmanagement_snacktrackerapi:latest
-  #     command: bash -c  "go test -v ./..."
-  #     volumes:
-  #       - ./src/snacks.maidbot.io/domain/test_data:/go/src/app/src/snacks.maidbot.io/domain/test_data
+
+  scannerlistener:
+      build:
+        dockerfile: scanner_listener/Dockerfile
+        context: .
+      networks:
+        maidbot-snacktracker:
+
+networks:
+  maidbot-snacktracker:

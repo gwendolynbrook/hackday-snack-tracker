@@ -9,6 +9,10 @@
   margin-left: 20px;
 }
 
+.padded-top {
+  margin-top: 20px;
+}
+
 .form {
   font-size: large;
   margin-bottom: 30px;
