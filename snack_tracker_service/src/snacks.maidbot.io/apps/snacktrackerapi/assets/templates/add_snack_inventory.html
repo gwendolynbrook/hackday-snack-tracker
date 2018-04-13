@@ -90,13 +90,20 @@
     var xmlHttp = new XMLHttpRequest();
     xmlHttp.open( "GET", "http://localhost:8080/state", false ); // false for synchronous request
     xmlHttp.send( null );
-    return JSON.parse(xmlHttp.responseText);
+    return xmlHttp.responseText;
   }
 
   function refreshDiv() { //make sure braces are on the same line as the block statement, it's a good convention in JS
-    var state=getStateTrackerState();
+    var stateJson=getStateTrackerState();
+    var state=JSON.parse(stateJson)
     document.getElementById("item_code").innerHTML = '<input type="text" name="item_code" value=' + state.item_code + '><br />';
     document.getElementById("current_item_name").innerHTML =  '<input type="text" name="current_item_name" value=' + state.item_name + ' disabled><br />';
+    if (state.code_is_new) {
+      document.getElementById("item_name").innerHTML =  '<input type="text" name="item_name" value=' + state.item_name + '><br />';
+      var xmlHttp = new XMLHttpRequest();
+      xmlHttp.open( "POST", "http://localhost:8080/state/code_is_new", false ); // false for synchronous request
+      xmlHttp.send( stateJson );
+    }
   }
 
   window.setInterval(refreshDiv, 50);

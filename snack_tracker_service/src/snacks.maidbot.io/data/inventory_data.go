@@ -82,8 +82,7 @@ func (d *inventoryData) CreateInventoryChange(inventoryChange *domain.InventoryC
 
 	statement, _ := d.db.Prepare("INSERT INTO inventory_changes (quantity, direction, item_code, item_name, created_at) VALUES (?, ?, ?, ?, ?)")
 	createdAt := d.currentMillis()
-  _, err :=  statement.Exec(inventoryChange.Quantity, inv858604005262
-		entoryChange.Direction, inventoryChange.ItemCode, inventoryChange.ItemName, createdAt)
+  _, err :=  statement.Exec(inventoryChange.Quantity, inventoryChange.Direction, inventoryChange.ItemCode, inventoryChange.ItemName, createdAt)
 	if err != nil {
 		return nil, err
 	}

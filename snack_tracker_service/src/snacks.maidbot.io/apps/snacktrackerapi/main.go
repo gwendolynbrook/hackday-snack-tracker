@@ -24,6 +24,7 @@ type SnackTrackerState struct {
 	ItemCount *int 					`json:"item_count"`
 	ItemCode *string				`json:"item_code"`
 	ItemName *string 				`json:"item_name"`
+	CodeIsNew bool					`json:"code_is_new"`
 }
 
 type SnackTrackerApiResources struct {
@@ -193,6 +194,10 @@ func (sr *SnackTrackerApiResources) setState(w http.ResponseWriter, r *http.Requ
 			return
 		}
 
+		if state_component == "code_is_new" {
+			sr.snackTrackerState.CodeIsNew = false
+		}
+
 		// HACK HACK HACK -- the meaty bits
 		if state_component == "item_code" {
 			sr.snackTrackerState.ItemCode = stateChangeState.ItemCode
@@ -210,6 +215,7 @@ func (sr *SnackTrackerApiResources) setState(w http.ResponseWriter, r *http.Requ
 				// return
 			} else {
 				log.Print("Setting new item_code in INTAKE mode")
+				sr.snackTrackerState.CodeIsNew = true
 				item, dbErr := sr.inventoryData.GetItemByCode(*sr.snackTrackerState.ItemCode)
 				if dbErr == nil {
 					sr.snackTrackerState.ItemName = &item.Name
@@ -309,6 +315,7 @@ func (sr *SnackTrackerApiResources) addSnackInventoryHandler(w http.ResponseWrit
 		sr.snackTrackerState.ItemCode = &stampedInventoryChange.ItemCode
 		sr.snackTrackerState.ItemName = stampedInventoryChange.ItemName
 		sr.snackTrackerState.ItemCount = &stampedInventoryChange.Quantity
+		sr.snackTrackerState.CodeIsNew = false
 	} else {
 		fmt.Println(err)
 	}
@@ -341,7 +348,7 @@ func hwHandler(w http.ResponseWriter, r *http.Request) {
     fmt.Fprintf(w, "Hi there, I love %s!", r.URL.Path[1:])
 }
 
-var snackTrackerState = SnackTrackerState{&domain.CHECKOUT_MODE, &domain.INTAKE_MODE, nil, nil}
+var snackTrackerState = SnackTrackerState{&domain.CHECKOUT_MODE, &domain.INTAKE_MODE, nil, nil, false}
 
 func main() {
   fmt.Printf("starting fleet snack tracker service \n")
