@@ -38,17 +38,17 @@
 
         <label for="current_item_name">Current Item Name</label>
         <div id="current_item_name">
-          <input type="text" name="current_item_name" value={{.ItemName}}><br />
+          <input type="text" name="current_item_name" value={{.ItemName}} disabled><br />
         </div>
 
-        <label for="item_name">Item Name</label>
+        <label for="item_name">New Item Name</label>
         <div id="item_name">
           <input type="text" name="item_name" value={{.ItemName}}><br />
         </div>
 
         <label for="item_count">Quantity    </label>
         <div id="item_count">
-          <input type="text" name="item_count" value="1"><br />
+          <input type="text" name="item_count" value={{.ItemCount}}><br />
         </div>
         <input type="submit">
       </form>
@@ -96,7 +96,7 @@
   function refreshDiv() { //make sure braces are on the same line as the block statement, it's a good convention in JS
     var state=getStateTrackerState();
     document.getElementById("item_code").innerHTML = '<input type="text" name="item_code" value=' + state.item_code + '><br />';
-    document.getElementById("current_item_name").innerHTML =  '<input type="text" name="current_item_name" value=' + state.item_name + '><br />';
+    document.getElementById("current_item_name").innerHTML =  '<input type="text" name="current_item_name" value=' + state.item_name + ' disabled><br />';
   }
 
   window.setInterval(refreshDiv, 50);

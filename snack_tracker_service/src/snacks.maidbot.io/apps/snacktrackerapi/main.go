@@ -289,13 +289,28 @@ func (sr *SnackTrackerApiResources) addSnackInventoryHandler(w http.ResponseWrit
 	item_name := r.FormValue("item_name")
 	item_count, _ := strconv.Atoi(r.FormValue("item_count"))
 
+	var item = domain.Item{item_code, item_name, nil, nil}
+	if sr.snackTrackerState.ItemName == nil {
+		_, err := sr.inventoryData.CreateItem(&item)
+		if err != nil {
+			fmt.Println("Cannot update item; will create in data layer")
+		}
+	} else if *sr.snackTrackerState.ItemName != item.Name {
+		_, err := sr.inventoryData.UpdateItem(&item)
+		if err != nil {
+			fmt.Println("Cannot update item; will create in data layer")
+		}
+	}
+
 	var inventoryChange = domain.InventoryChange{item_count, domain.INTAKE_MODE, item_code, &item_name, nil}
 	stampedInventoryChange, err := sr.inventoryData.CreateInventoryChange(&inventoryChange)
 
 	if err == nil {
 		sr.snackTrackerState.ItemCode = &stampedInventoryChange.ItemCode
-		sr.snackTrackerState.ItemCode = stampedInventoryChange.ItemName
-		sr.snackTrackerState.ItemCount = stampedInventoryChange.Quantity
+		sr.snackTrackerState.ItemName = stampedInventoryChange.ItemName
+		sr.snackTrackerState.ItemCount = &stampedInventoryChange.Quantity
+	} else {
+		fmt.Println(err)
 	}
 
 	tmpl_err := tmpl.Execute(w, sr.snackTrackerState)

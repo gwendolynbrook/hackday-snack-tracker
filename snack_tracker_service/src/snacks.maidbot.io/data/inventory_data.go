@@ -69,7 +69,7 @@ func (d *inventoryData) currentMillis() int64 {
 func (d *inventoryData) CreateInventoryChange(inventoryChange *domain.InventoryChange) (*domain.InventoryChange, error) {
 	item, itemErr := d.GetItemByCode(inventoryChange.ItemCode)
 	if itemErr != nil {
-		var item = domain.Item{UNREGISTERED_NAME, inventoryChange.ItemCode, nil, nil}
+		var item = domain.Item{inventoryChange.ItemCode, UNREGISTERED_NAME, nil, nil}
 		newItem, newItemErr := d.CreateItem(&item)
 		if newItemErr != nil {
 			log.Println("Error creating item for inventory change")
@@ -82,7 +82,8 @@ func (d *inventoryData) CreateInventoryChange(inventoryChange *domain.InventoryC
 
 	statement, _ := d.db.Prepare("INSERT INTO inventory_changes (quantity, direction, item_code, item_name, created_at) VALUES (?, ?, ?, ?, ?)")
 	createdAt := d.currentMillis()
-  _, err :=  statement.Exec(inventoryChange.Quantity, inventoryChange.Direction, inventoryChange.ItemCode, inventoryChange.ItemName, createdAt)
+  _, err :=  statement.Exec(inventoryChange.Quantity, inv858604005262
+		entoryChange.Direction, inventoryChange.ItemCode, inventoryChange.ItemName, createdAt)
 	if err != nil {
 		return nil, err
 	}
@@ -150,7 +151,7 @@ func (d *inventoryData) GetItemByCode(code string) (*domain.Item, error) {
 	var item domain.Item
 	err := d.db.QueryRow("SELECT code, name, created_at, updated_at FROM items WHERE code=?", code).Scan(&item.Code, &item.Name, &item.CreatedAt, &item.UpdatedAt)
 	if err != nil {
-		log.Println("Unable to get item by id.")
+		log.Println("Unable to get item by code.")
 		return nil, err
 	}
 
@@ -159,7 +160,7 @@ func (d *inventoryData) GetItemByCode(code string) (*domain.Item, error) {
 
 func (d *inventoryData) GetItemByName(name string) (*domain.Item, error) {
 	var item domain.Item
-	err := d.db.QueryRow("SELECT code, name, created_at, updated_at FROM items WHERE Name=?", name).Scan(&item.Code, &item.Name, &item.CreatedAt, &item.UpdatedAt)
+	err := d.db.QueryRow("SELECT code, name, created_at, updated_at FROM items WHERE code=?", name).Scan(&item.Code, &item.Name, &item.CreatedAt, &item.UpdatedAt)
 	if err != nil {
 		log.Println("Unable to get item by name.")
 		return nil, err
@@ -177,7 +178,7 @@ func (d *inventoryData) GetItemsByUpdatedTime(createdAfter int64, createdBefore 
 	itemsList := []*domain.Item{}
 	for rows.Next() {
 		item := new(domain.Item)
-		err = rows.Scan(&item.Name, &item.Code, &item.CreatedAt, &item.UpdatedAt)
+		err = rows.Scan(&item.Code, &item.Name, &item.CreatedAt, &item.UpdatedAt)
 		itemsList = append(itemsList, item)
 	}
 
