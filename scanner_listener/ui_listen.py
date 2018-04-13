@@ -31,20 +31,25 @@ class BarcodeReader():
             print("Failed to connect. Please try again.")
 
     def read_code(self):
-        for event in self.barcode_reader.read_loop():
-            if event.type == evdev.ecodes.EV_KEY:
-                key_press_data = evdev.categorize(event)
-                # print(key_press_data)
-                if key_press_data.keystate == 1:  # dow press only.
-                    key_code = key_press_data.keycode[4:]
-                    # print(key_press_data.keycode)
-                    if len(key_code) == 1:
-                        self.code = self.code + key_code
-                    if key_code == "ENTER":
-                        print("End of input")
-                        print("Code is : {0}".format(self.code))
-                        self.post(self.code)
-                        self.code = ''
+        try:
+            for event in self.barcode_reader.read_loop():
+                if event.type == evdev.ecodes.EV_KEY:
+                    key_press_data = evdev.categorize(event)
+                    # print(key_press_data)
+                    if key_press_data.keystate == 1:  # dow press only.
+                        key_code = key_press_data.keycode[4:]
+                        # print(key_press_data.keycode)
+                        if len(key_code) == 1:
+                            self.code = self.code + key_code
+                        if key_code == "ENTER":
+                            print("End of input")
+                            print("Code is : {0}".format(self.code))
+                            self.post(self.code)
+                            self.code = ''
+        except IOError as e:
+            print("Missing input device.... is scanner plugged in? \n {0}".format(e))
+            time.sleep(3)
+
 
 def main():
     config = Config()
