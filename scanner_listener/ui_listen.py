@@ -6,9 +6,17 @@ import time
 import evdev
 import requests
 import json
+import logging
 from functools import partial
 
 env = partial(os.environ.get)
+log = logging.getLogger('barcode reader')
+log.setLevel(logging.INFO)
+formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+
+ch = logging.StreamHandler(sys.stdout)
+ch.setFormatter(formatter)
+log.addHandler(ch)
 
 class Config:
     SNACK_SERVICE_HOST = env("SNACK_SERVICE_HOST")
@@ -20,17 +28,16 @@ class BarcodeReader():
         self.barcode_reader_addr = None
         self.config = config
         self.code = ''
-        self.find_barcode_reader()
         # Try to connect
         self.connect_to_reader()
 
     def post(self, code):
-        print("Posting : {}".format(code))
+        log.info("Posting : {}".format(code))
         data = {"item_code": code}
         headers = {"content-type": "application/json"}
         host = self.config.SNACK_SERVICE_HOST if self.config.SNACK_SERVICE_HOST \
             else self.config.SNACK_SERVICE_HOST_DEFAULT
-        print(host)
+        log.info(host)
         try:
             r = requests.post(host + "/state/item_code", data=json.dumps(data), headers=headers)
             print(r.content)
@@ -42,7 +49,7 @@ class BarcodeReader():
         devices = [evdev.InputDevice(fn) for fn in evdev.list_devices()]
 
         for device in devices:
-            print(device.fn, device.name, device.phys)
+            log.debug(device.fn, device.name, device.phys)
             if("Barcode Reader" in device.name):
                 self.barcode_reader_addr = device.fn
                 break
@@ -55,7 +62,7 @@ class BarcodeReader():
             if self.barcode_reader_addr is not None:
                 self.barcode_reader = evdev.InputDevice(self.barcode_reader_addr)
         except OSError as e:
-            print("No barcode reader found: {0}".format(e))
+            log.warning("No barcode reader found: {0}".format(e))
 
     def _read_code(self):
         for event in self.barcode_reader.read_loop():
@@ -81,7 +88,7 @@ class BarcodeReader():
                 self.connect_to_reader()
                 time.sleep(3)
         except IOError as e:
-            print("Missing input device.... is scanner plugged in? \n {0}".format(e))
+            log.warning("Missing input device.... is scanner plugged in? \n {0}".format(e))
             self.connect_to_reader()
             time.sleep(3)
 

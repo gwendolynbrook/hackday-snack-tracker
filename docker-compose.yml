@@ -24,6 +24,7 @@ services:
       build:
         dockerfile: scanner_listener/Dockerfile
         context: .
+      env_file: ./scanner_listener/local.env
       networks:
         maidbot-snacktracker:
 
