@@ -15,6 +15,8 @@ services:
         - ./snack_tracker_api/src/snacks.maidbot.io/apps/snacktrackerapi/assets:/go/src/app/src/snacks.maidbot.io/apps/snacktrackerapi/assets
         # Persistent data directory between containers
         - ./snack_tracker_api/src/snacks.maidbot.io/data/snacksdb:/go/src/app/src/snacks.maidbot.io/data/snacksdb
+        # Persistent cache between containers
+        - ./snack_tracker_api/src/snacks.maidbot.io/apps/snacktrackerapi/cache:/go/src/app/src/snacks.maidbot.io/apps/snacktrackerapi/cache
   #
   # test:
   #     image: fleetmanagement_snacktrackerapi:latest

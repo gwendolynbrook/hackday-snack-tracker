@@ -14,3 +14,9 @@ type Item struct {
   CreatedAt       *int64      `json:"created_at"`
   UpdatedAt       *int64      `json:"updated_at"`
 }
+
+type InventoryAggregate struct {
+  ItemCode          string                   `json:"item_code"`
+  Quantity          int                      `json:"quantity"`
+  InventoryChanges  []*InventoryChange       `json:"inventory_changes"`
+}

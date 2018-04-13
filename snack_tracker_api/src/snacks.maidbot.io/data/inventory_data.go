@@ -15,7 +15,11 @@ import (
 type InventoryData interface {
 	CreateInventoryChange(inventoryChange *domain.InventoryChange) (*domain.InventoryChange, error)
 	GetInventoryChangesByTime(createdAfter int64, createdBefore int64) ([]*domain.InventoryChange, error)
+	GetInventoryChangesByTimeForItem(code string, createdAfter int64, createdBefore int64) ([]*domain.InventoryChange, error)
 	DeleteInventoryChangesByTime(createdAfter int64, createdBefore int64) error
+
+	// Definitely edging into service territory here..... F- (but ok b/c this is a hack day project)
+	ComputeInventoryAggregate(code string, updatedAfter int64, updatedBefore int64) (*domain.InventoryAggregate, error)
 
 	CreateItem(item *domain.Item) (*domain.Item, error)
 	UpdateItem(item *domain.Item) (*domain.Item, error)
@@ -67,6 +71,24 @@ func (d *inventoryData) currentMillis() int64 {
 	return millis
 }
 
+func (d *inventoryData) ComputeInventoryAggregate(code string, updatedAfter int64, updatedBefore int64) (*domain.InventoryAggregate, error) {
+	inventoryAggregate := new(domain.InventoryAggregate)
+	changes, changesErr := d.GetInventoryChangesByTimeForItem(code, updatedAfter, updatedBefore)
+	if changesErr != nil {
+		log.Printf("Cannot get inventory changes for item %s", code)
+		return nil, changesErr
+	}
+
+	inventoryAggregate.ItemCode = code
+	inventoryAggregate.InventoryChanges = changes
+	inventoryAggregate.Quantity = 0
+	for _, change := range changes {
+		inventoryAggregate.Quantity = inventoryAggregate.Quantity + change.Direction * change.Quantity
+	}
+
+	return inventoryAggregate, nil
+}
+
 func (d *inventoryData) CreateInventoryChange(inventoryChange *domain.InventoryChange) (*domain.InventoryChange, error) {
 	item, itemErr := d.GetItemByCode(inventoryChange.ItemCode)
 	if itemErr != nil {
@@ -96,6 +118,23 @@ func (d *inventoryData) GetInventoryChangesByTime(createdAfter int64, createdBef
 	rows, err := d.db.Query("SELECT quantity, direction, item_code, item_name, created_at FROM inventory_changes WHERE created_at>=? AND created_at<?", createdAfter, createdBefore)
 	if err != nil {
 		log.Println("Unable to get changes by date.")
+		return nil, err
+	}
+
+	changeList := []*domain.InventoryChange{}
+	for rows.Next() {
+		inventoryChange := new(domain.InventoryChange)
+		err = rows.Scan(&inventoryChange.Quantity, &inventoryChange.Direction, &inventoryChange.ItemCode, &inventoryChange.ItemName, &inventoryChange.CreatedAt)
+		changeList = append(changeList, inventoryChange)
+	}
+
+	return changeList, nil
+}
+
+func (d *inventoryData) GetInventoryChangesByTimeForItem(code string, createdAfter int64, createdBefore int64) ([]*domain.InventoryChange, error) {
+	rows, err := d.db.Query("SELECT quantity, direction, item_code, item_name, created_at FROM inventory_changes WHERE created_at>=? AND created_at<? AND item_code=?", createdAfter, createdBefore, code)
+	if err != nil {
+		log.Printf("Unable to get changes by date for item %s.", code)
 		return nil, err
 	}
 

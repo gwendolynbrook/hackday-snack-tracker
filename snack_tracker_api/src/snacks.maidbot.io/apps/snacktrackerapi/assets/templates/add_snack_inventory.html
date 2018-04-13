@@ -11,27 +11,19 @@
   <link rel="icon" href="/assets/images/rosie.png">
   <script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
 </head>
+
 <body>
 
 <div class="content">
-  <h2> Maidbot Snacktracker: Add More Snacks to Maidbot's Invetory </h2>
-  <div class="row">
-    <div class="col-md-4">
-        <button type="button" class="btn btn-success btn-block">
-            <br/>
-            <br/>
-            Add to Inventory
-            <br/>
-            <br/>
-            <br/>
-            <br/>
-
-        </button>
-    </div>
+  <div class="row padded">
     <div class="col-md-8">
+      <h2> Maidbot Snacktracker: Add More Snacks to Maidbot's Inventory </h2>
+    </div>
+  </div>
+  <div class="row padded form">
+    <div class="col-md-4">
       <form method="POST" action="/add_snack_inventory">
-        <label>New Snack Items</label><br />
-        <label for="item_code">Item Code</label>
+        <label for="item_code">Item Code (from Scanner)</label>
         <div id="item_code">
           <input type="text" name="item_code" value={{.ItemCode}}><br />
         </div>
@@ -46,29 +38,26 @@
           <input type="text" name="item_name" value={{.ItemName}}><br />
         </div>
 
-        <label for="item_count">Quantity    </label>
+        <label for="item_count">Quantity to Add    </label>
         <div id="item_count">
           <input type="text" name="item_count" value={{.ItemCount}}><br />
         </div>
-        <input type="submit">
+
+        <label for="quantity_remaining">Quantity in Inventory    </label>
+        <div id="quantity_remaining">
+          <input type="text" name="quantity_remaining" value={{.RemainingQuantity}} disabled><br />
+        </div>
+
+        <div class="submit-button">
+          <input type="submit" value="Update Inventory!"> <br />
+        </div>
       </form>
-        <!-- <div class="row">
-            <div class="col-md-6">
-                <div class="well">{{.ItemCode}}</div>
-            </div>
-            <div class="col-md-6">
-                <div class="well">{{.ItemName}}</div>
-            </div>
-        </div> -->
-        <!-- <div class="row">
-            <div class="col-md-12">
-                <div class="well">Quantity to Add (ghost text enter number here)</div>
-            </div>
-        </div> -->
     </div>
-</div>
-<div class="row">
-    <div class="col-md-4">
+  </div>
+
+
+  <div class="row padded">
+    <div class="col-md-8">
         <form action="http://localhost:8080/consume_snacks">
           <input type="submit" value="Consume Snacks!" />
         </form>
@@ -81,7 +70,7 @@
             <br/>
         </button>
     </div> -->
-</div>
+  </div>
 </div>
 
 <script type="text/javascript">
@@ -98,10 +87,11 @@
     var state=JSON.parse(stateJson)
     document.getElementById("item_code").innerHTML = '<input type="text" name="item_code" value=' + state.item_code + '><br />';
     document.getElementById("current_item_name").innerHTML =  '<input type="text" name="current_item_name" value=' + state.item_name + ' disabled><br />';
+    document.getElementById("quantity_remaining").innerHTML =  '<input type="text" name="quantity_remaining" value=' + state.remaining_quantity + ' disabled><br />';
     if (state.code_is_new) {
       document.getElementById("item_name").innerHTML =  '<input type="text" name="item_name" value=' + state.item_name + '><br />';
       var xmlHttp = new XMLHttpRequest();
-      xmlHttp.open( "POST", "http://localhost:8080/state/code_is_new", false ); // false for synchronous request
+      xmlHttp.open( "POST", "http://localhost:8080/state/code_is_new", true ); // false for synchronous request
       xmlHttp.send( stateJson );
     }
   }

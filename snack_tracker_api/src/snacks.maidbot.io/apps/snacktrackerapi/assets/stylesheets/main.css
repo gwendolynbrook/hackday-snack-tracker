@@ -1,3 +1,15 @@
 .content {
   font-family: 'Inconsolata', serif;
 }
+
+.padded {
+  margin-top: 20px;
+  margin-bottom: 10px;
+  margin-right: 20px;
+  margin-left: 20px;
+}
+
+.form {
+  font-size: large;
+  margin-bottom: 30px;
+}

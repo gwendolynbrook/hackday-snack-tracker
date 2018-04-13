@@ -13,19 +13,25 @@
 <body>
 
 <div class="content">
-  <div class="row">
+  <div class="row padded">
     <div class="col-sm-1">
     </div>
     <div class="col-sm-4">
-      <h2> Welcome to the Snack Tracker! </h2>
+      <div class="row padded">
+        <h2> Welcome to the Snack Tracker! </h2>
+      </div>
 
-      <form action="http://localhost:8080/consume_snacks">
-        <input type="submit" value="Consume Snacks" />
-      </form>
+      <div class="row padded">
+        <form action="http://localhost:8080/consume_snacks">
+          <input type="submit" value="Consume Snacks" />
+        </form>
+      </div>
 
-      <form action="http://localhost:8080/add_snack_inventory">
-        <input type="submit" value="Add Snacks To Inventory" />
-      </form>
+      <div class="row padded">
+        <form action="http://localhost:8080/add_snack_inventory">
+          <input type="submit" value="Add Snacks To Inventory" />
+        </form>
+      </div>
 
     </div>
   </div>
