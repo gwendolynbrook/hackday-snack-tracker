@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 	"log"
+	"strconv"
 	// "strings"
 	"net/http"
 	"html/template"
@@ -272,28 +273,47 @@ func (sr *SnackTrackerApiResources) landingPageHandler(w http.ResponseWriter, r 
 func (sr *SnackTrackerApiResources) addSnackInventoryHandler(w http.ResponseWriter, r *http.Request) {
 	// TODO -- only parse once, this is to facilitate debugging.
 	sr.snackTrackerState.Mode = &domain.INTAKE_MODE
-	sr.snackTrackerState.ItemCode = nil
-	sr.snackTrackerState.ItemName = nil
 	tmpl := template.Must(template.ParseFiles(ASSETS_DIR + "templates/add_snack_inventory.html"))
 	// TODO! Template the redirects here!
 	if r.Method != http.MethodPost {
+		sr.snackTrackerState.ItemCode = nil
+		sr.snackTrackerState.ItemName = nil
 		tmpl_err := tmpl.Execute(w, sr.snackTrackerState)
 		if(tmpl_err != nil) {
 			log.Print(tmpl_err)
 		}
 		return
 	}
+
+	item_code := r.FormValue("item_code")
+	item_name := r.FormValue("item_name")
+	item_count, _ := strconv.Atoi(r.FormValue("item_count"))
+
+	var inventoryChange = domain.InventoryChange{item_count, domain.INTAKE_MODE, item_code, &item_name, nil}
+	_, err := sr.inventoryData.CreateInventoryChange(&inventoryChange)
+
+	if err == nil {
+		sr.snackTrackerState.ItemCode = &item_code
+		sr.snackTrackerState.ItemCode = &item_name
+		sr.snackTrackerState.ItemCount = &item_count
+		tmpl_err := tmpl.Execute(w, sr.snackTrackerState)
+		if(tmpl_err != nil) {
+			log.Print(tmpl_err)
+		}
+		return
+	}
+	return
 }
 
 func (sr *SnackTrackerApiResources) consumeSnacksHandler(w http.ResponseWriter, r *http.Request) {
 	// TODO -- only parse once, this is to facilitate debugging.
 	sr.snackTrackerState.Mode = &domain.CHECKOUT_MODE
 	sr.snackTrackerState.ItemCount = &domain.INTAKE_MODE
-	sr.snackTrackerState.ItemCode = nil
-	sr.snackTrackerState.ItemName = nil
 	tmpl := template.Must(template.ParseFiles(ASSETS_DIR + "templates/consume_snacks.html"))
 	// TODO! Template the redirects here!
 	if r.Method != http.MethodPost {
+		sr.snackTrackerState.ItemCode = nil
+		sr.snackTrackerState.ItemName = nil
 		tmpl_err := tmpl.Execute(w, sr.snackTrackerState)
 		if(tmpl_err != nil) {
 			log.Print(tmpl_err)
