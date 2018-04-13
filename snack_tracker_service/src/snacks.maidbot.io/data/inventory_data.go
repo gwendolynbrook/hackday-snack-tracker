@@ -19,7 +19,7 @@ type InventoryData interface {
 
 	CreateItem(item *domain.Item) (*domain.Item, error)
 	UpdateItem(item *domain.Item) (*domain.Item, error)
-	GetItemByCode(code int) (*domain.Item, error)
+	GetItemByCode(code string) (*domain.Item, error)
 	GetItemByName(name string) (*domain.Item, error)
 	GetItemsByUpdatedTime(updatedAfter int64, updatedBefore int64) ([]*domain.Item, error)
 
@@ -34,7 +34,7 @@ func NewInventoryData() (InventoryData, error) {
 	fmt.Println("Using data dir : " + data_dir)
 	db, err := sql.Open("sqlite3", data_dir + "/inventory.db")
 	log.Print(err)
-	statement, stmtErr := db.Prepare("CREATE TABLE IF NOT EXISTS inventory_changes (created_at integer PRIMARY KEY, quantity integer NOT NULL, direction integer NOT NULL, item_code text NOT NULL)")
+	statement, stmtErr := db.Prepare("CREATE TABLE IF NOT EXISTS inventory_changes (created_at integer PRIMARY KEY, quantity integer NOT NULL, direction integer NOT NULL, item_code text NOT NULL, item_name text NOT NULL)")
 	log.Print(stmtErr)
 	statement.Exec()
 	statement, stmtErr = db.Prepare("CREATE TABLE IF NOT EXISTS items (code text PRIMARY KEY, name text NOT NULL, created_at integer NOT NULL, updated_at integer NOT_NULL)")
@@ -67,9 +67,22 @@ func (d *inventoryData) currentMillis() int64 {
 }
 
 func (d *inventoryData) CreateInventoryChange(inventoryChange *domain.InventoryChange) (*domain.InventoryChange, error) {
-	statement, _ := d.db.Prepare("INSERT INTO inventory_changes (quantity, direction, item_code, created_at) VALUES (?, ?, ?, ?)")
+	item, itemErr := d.GetItemByCode(inventoryChange.ItemCode)
+	if itemErr != nil {
+		var item = domain.Item{UNREGISTERED_NAME, inventoryChange.ItemCode, nil, nil}
+		newItem, newItemErr := d.CreateItem(&item)
+		if newItemErr != nil {
+			log.Println("Error creating item for inventory change")
+			return nil, newItemErr
+		}
+		inventoryChange.ItemName = &newItem.Name
+	} else {
+		inventoryChange.ItemName = &item.Name
+	}
+
+	statement, _ := d.db.Prepare("INSERT INTO inventory_changes (quantity, direction, item_code, item_name, created_at) VALUES (?, ?, ?, ?, ?)")
 	createdAt := d.currentMillis()
-  _, err :=  statement.Exec(inventoryChange.Quantity, inventoryChange.Direction, inventoryChange.ItemCode, createdAt)
+  _, err :=  statement.Exec(inventoryChange.Quantity, inventoryChange.Direction, inventoryChange.ItemCode, inventoryChange.ItemName, createdAt)
 	if err != nil {
 		return nil, err
 	}
@@ -79,7 +92,7 @@ func (d *inventoryData) CreateInventoryChange(inventoryChange *domain.InventoryC
 }
 
 func (d *inventoryData) GetInventoryChangesByTime(createdAfter int64, createdBefore int64) ([]*domain.InventoryChange, error) {
-	rows, err := d.db.Query("SELECT quantity, direction, item_code, created_at FROM inventory_changes WHERE created_at>=? AND created_at<?", createdAfter, createdBefore)
+	rows, err := d.db.Query("SELECT quantity, direction, item_code, item_name, created_at FROM inventory_changes WHERE created_at>=? AND created_at<?", createdAfter, createdBefore)
 	if err != nil {
 		log.Println("Unable to get changes by date.")
 		return nil, err
@@ -88,7 +101,7 @@ func (d *inventoryData) GetInventoryChangesByTime(createdAfter int64, createdBef
 	changeList := []*domain.InventoryChange{}
 	for rows.Next() {
 		inventoryChange := new(domain.InventoryChange)
-		err = rows.Scan(&inventoryChange.Quantity, &inventoryChange.Direction, &inventoryChange.ItemCode, &inventoryChange.CreatedAt)
+		err = rows.Scan(&inventoryChange.Quantity, &inventoryChange.Direction, &inventoryChange.ItemCode, &inventoryChange.ItemName, &inventoryChange.CreatedAt)
 		changeList = append(changeList, inventoryChange)
 	}
 
@@ -133,7 +146,7 @@ func (d *inventoryData) UpdateItem(item *domain.Item) (*domain.Item, error) {
 	return item, nil
 }
 
-func (d *inventoryData) GetItemByCode(code int) (*domain.Item, error) {
+func (d *inventoryData) GetItemByCode(code string) (*domain.Item, error) {
 	var item domain.Item
 	err := d.db.QueryRow("SELECT code, name, created_at, updated_at FROM items WHERE code=?", code).Scan(&item.Code, &item.Name, &item.CreatedAt, &item.UpdatedAt)
 	if err != nil {

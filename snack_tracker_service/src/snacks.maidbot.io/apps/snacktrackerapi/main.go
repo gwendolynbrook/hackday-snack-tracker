@@ -4,14 +4,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"time"
-	// "log"
+	"log"
 	// "strings"
 	"net/http"
-	// "html/template"
+	"html/template"
 	"io/ioutil"
 	"github.com/gorilla/mux"
 
-	// "app/src/snacks.maidbot.io/clients"
 	"app/src/snacks.maidbot.io/domain"
 	// TODO: add service layer if things get more complicated....
 	"app/src/snacks.maidbot.io/data"
@@ -23,11 +22,12 @@ type SnackTrackerState struct {
 	Mode *int								`json:"mode"`
 	ItemCount *int 					`json:"item_count"`
 	ItemCode *string				`json:"item_code"`
+	ItemName *string 				`json:"item_name"`
 }
 
 type SnackTrackerApiResources struct {
 	inventoryData data.InventoryData
-	stateTrackerState *SnackTrackerState
+	snackTrackerState *SnackTrackerState
 }
 
 func (sr *SnackTrackerApiResources) createInventoryChange(w http.ResponseWriter, r *http.Request) {
@@ -90,12 +90,12 @@ func (sr *SnackTrackerApiResources) listItems(w http.ResponseWriter, r *http.Req
 
 func (sr *SnackTrackerApiResources) undoLastInventoryChange(w http.ResponseWriter, r *http.Request) {
 
-	if sr.stateTrackerState.ItemCode == nil {
+	if sr.snackTrackerState.ItemCode == nil {
 		w.WriteHeader(http.StatusNoContent)
 		return
 	}
 
-	var inventoryChange = domain.InventoryChange{*sr.stateTrackerState.ItemCount, -1 * (*sr.stateTrackerState.Mode), *sr.stateTrackerState.ItemCode, nil}
+	var inventoryChange = domain.InventoryChange{*sr.snackTrackerState.ItemCount, -1 * (*sr.snackTrackerState.Mode), *sr.snackTrackerState.ItemCode, nil, nil}
 	dbResult, dbErr := sr.inventoryData.CreateInventoryChange(&inventoryChange)
 	if dbErr != nil {
 		http.Error(w, dbErr.Error(), 500)
@@ -104,7 +104,7 @@ func (sr *SnackTrackerApiResources) undoLastInventoryChange(w http.ResponseWrite
 
 	// Marshal
 	output, err := json.Marshal(dbResult)
-	sr.stateTrackerState.ItemCode = nil
+	sr.snackTrackerState.ItemCode = nil
 	if err != nil {
 		http.Error(w, err.Error(), 500)
 		return
@@ -192,34 +192,48 @@ func (sr *SnackTrackerApiResources) setState(w http.ResponseWriter, r *http.Requ
 			return
 		}
 
+		// HACK HACK HACK -- the meaty bits
 		if state_component == "item_code" {
-			sr.stateTrackerState.ItemCode = stateChangeState.ItemCode
-			if sr.stateTrackerState.Mode == &domain.CHECKOUT_MODE {
-				var inventoryChange = domain.InventoryChange{1, domain.CHECKOUT_MODE, *sr.stateTrackerState.ItemCode, nil}
+			sr.snackTrackerState.ItemCode = stateChangeState.ItemCode
+			if sr.snackTrackerState.Mode == &domain.CHECKOUT_MODE {
+				var inventoryChange = domain.InventoryChange{1, domain.CHECKOUT_MODE, *sr.snackTrackerState.ItemCode, nil, nil}
 				_, dbErr := sr.inventoryData.CreateInventoryChange(&inventoryChange)
+				sr.snackTrackerState.ItemName = inventoryChange.ItemName
 				if dbErr != nil {
 					http.Error(w, err.Error(), 500)
 					return
 				}
+				// tmpl := template.Must(template.ParseFiles(ASSETS_DIR + "templates/consume_snacks.html"))
+				// tmpl.Execute(w, sr.snackTrackerState)
+				// return
+			} else {
+				item, dbErr := sr.inventoryData.GetItemByCode(*sr.snackTrackerState.ItemCode)
+				if dbErr == nil {
+					sr.snackTrackerState.ItemName = &item.Name
+				} else {
+					sr.snackTrackerState.ItemName = nil
+				}
+				tmpl := template.Must(template.ParseFiles(ASSETS_DIR + "templates/add_snack_inventory.html"))
+				tmpl.Execute(w, sr.snackTrackerState)
 			}
 		}
 
 		if state_component == "item_count" {
-			sr.stateTrackerState.ItemCode = stateChangeState.ItemCode
+			sr.snackTrackerState.ItemCount = stateChangeState.ItemCount
 		}
 
 		if state_component == "mode" {
-			oldMode := sr.stateTrackerState.Mode
+			oldMode := sr.snackTrackerState.Mode
 			if *stateChangeState.Mode == 1 || *stateChangeState.Mode == -1 {
-				sr.stateTrackerState.Mode = stateChangeState.Mode
-				if oldMode != sr.stateTrackerState.Mode {
-					sr.stateTrackerState.ItemCode = nil
+				sr.snackTrackerState.Mode = stateChangeState.Mode
+				if oldMode != sr.snackTrackerState.Mode {
+					sr.snackTrackerState.ItemCode = nil
 				}
 			}
 		}
 
 		// Marshal
-		output, err := json.Marshal(sr.stateTrackerState)
+		output, err := json.Marshal(sr.snackTrackerState)
 		if err != nil {
 			http.Error(w, err.Error(), 500)
 			return
@@ -230,10 +244,8 @@ func (sr *SnackTrackerApiResources) setState(w http.ResponseWriter, r *http.Requ
 }
 
 func (sr *SnackTrackerApiResources) getState(w http.ResponseWriter, r *http.Request) {
-		fmt.Println("Getting application state");
-
 		// Marshal
-		output, err := json.Marshal(sr.stateTrackerState)
+		output, err := json.Marshal(sr.snackTrackerState)
 		if err != nil {
 			http.Error(w, err.Error(), 500)
 			return
@@ -244,57 +256,57 @@ func (sr *SnackTrackerApiResources) getState(w http.ResponseWriter, r *http.Requ
 }
 
 
-// func (sr *SnackTrackerApiResources) updateItem(w http.ResponseWriter, r *http.Request) {
-// 	// TODO -- only parse once, this is to facilitate debugging.
-// 	tmpl := template.Must(template.ParseFiles(ASSETS_DIR + "templates/software_status.html"))
-// 	if r.Method != http.MethodPost {
-// 		tmpl_err := tmpl.Execute(w, sr.software_status_data)
-// 		if(tmpl_err != nil) {
-// 			log.Print(tmpl_err)
-// 		}
-// 		return
-// 	}
-//
-// 	resource_type := mux.Vars(r)["resource_type"]
-// 	if resource_type == "app_status" {
-// 		app_name := r.FormValue("app_name")
-// 		// Hard code for testing
-// 		app_status, app, app_err := sr.software_status_serivice.GetApplicationStatus(app_name)
-// 		sr.software_status_data.Application = app
-// 		sr.software_status_data.ApplicationStatus = app_status
-// 		if(app_err != nil) {
-// 			log.Print(app_err)
-// 			sr.software_status_data.ApplicationStatusReady = false
-// 		} else {
-// 			sr.software_status_data.ApplicationStatusReady = true
-// 		}
-// 	}
-//
-// 	if resource_type == "robot_status" {
-// 		robot_name := r.FormValue("robot_name")
-// 		// Hard code for testing
-// 		robot_status, robot, robot_err := sr.software_status_serivice.GetRobotStatus(robot_name)
-// 		sr.software_status_data.Robot = robot
-// 		sr.software_status_data.RobotStatus = robot_status
-// 		if(robot_err != nil) {
-// 			log.Print(robot_err)
-// 			sr.software_status_data.RobotStatusReady = false
-// 		} else {
-// 			sr.software_status_data.RobotStatusReady = true
-// 		}
-// 	}
-//
-// 	tmpl_err := tmpl.Execute(w, sr.software_status_data)
-// 	if(tmpl_err != nil) {
-// 		log.Print(tmpl_err)
-// 	}
-// }
+func (sr *SnackTrackerApiResources) landingPageHandler(w http.ResponseWriter, r *http.Request) {
+	// TODO -- only parse once, this is to facilitate debugging.
+	tmpl := template.Must(template.ParseFiles(ASSETS_DIR + "templates/landing.html"))
+	// TODO! Template the redirects here!
+	if r.Method != http.MethodPost {
+		tmpl_err := tmpl.Execute(w, sr.snackTrackerState)
+		if(tmpl_err != nil) {
+			log.Print(tmpl_err)
+		}
+		return
+	}
+}
+
+func (sr *SnackTrackerApiResources) addSnackInventoryHandler(w http.ResponseWriter, r *http.Request) {
+	// TODO -- only parse once, this is to facilitate debugging.
+	sr.snackTrackerState.Mode = &domain.INTAKE_MODE
+	sr.snackTrackerState.ItemCode = nil
+	sr.snackTrackerState.ItemName = nil
+	tmpl := template.Must(template.ParseFiles(ASSETS_DIR + "templates/add_snack_inventory.html"))
+	// TODO! Template the redirects here!
+	if r.Method != http.MethodPost {
+		tmpl_err := tmpl.Execute(w, sr.snackTrackerState)
+		if(tmpl_err != nil) {
+			log.Print(tmpl_err)
+		}
+		return
+	}
+}
+
+func (sr *SnackTrackerApiResources) consumeSnacksHandler(w http.ResponseWriter, r *http.Request) {
+	// TODO -- only parse once, this is to facilitate debugging.
+	sr.snackTrackerState.Mode = &domain.CHECKOUT_MODE
+	sr.snackTrackerState.ItemCount = &domain.INTAKE_MODE
+	sr.snackTrackerState.ItemCode = nil
+	sr.snackTrackerState.ItemName = nil
+	tmpl := template.Must(template.ParseFiles(ASSETS_DIR + "templates/consume_snacks.html"))
+	// TODO! Template the redirects here!
+	if r.Method != http.MethodPost {
+		tmpl_err := tmpl.Execute(w, sr.snackTrackerState)
+		if(tmpl_err != nil) {
+			log.Print(tmpl_err)
+		}
+		return
+	}
+}
 
 func hwHandler(w http.ResponseWriter, r *http.Request) {
     fmt.Fprintf(w, "Hi there, I love %s!", r.URL.Path[1:])
 }
 
-var snackTrackerState = SnackTrackerState{&domain.CHECKOUT_MODE, &domain.INTAKE_MODE, nil}
+var snackTrackerState = SnackTrackerState{&domain.CHECKOUT_MODE, &domain.INTAKE_MODE, nil, nil}
 
 func main() {
   fmt.Printf("starting fleet snack tracker service \n")
@@ -305,7 +317,9 @@ func main() {
 		inventoryData,
 		&snackTrackerState}
 
-	r.HandleFunc("/", api_resources.landingPage)
+	r.HandleFunc("/", api_resources.landingPageHandler)
+	r.HandleFunc("/consume_snacks", api_resources.consumeSnacksHandler)
+	r.HandleFunc("/add_snack_inventory", api_resources.addSnackInventoryHandler)
 	r.PathPrefix("/assets/").Handler(fs)
 	r.HandleFunc("/ping", hwHandler)
 	r.HandleFunc("/inventory_change", api_resources.createInventoryChange).Methods("POST")

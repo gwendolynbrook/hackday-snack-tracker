@@ -4,6 +4,7 @@ type InventoryChange struct {
   Quantity          int       `json:"quantity"`
   Direction         int       `json:"direction"`
   ItemCode          string    `json:"item_code"`
+  ItemName          *string   `json:"item_name"`
   CreatedAt         *int64    `json:"created_at"`
 }
 
