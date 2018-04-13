@@ -1,9 +1,9 @@
 version: '2.2'
 
 services:
-  snacktrackerservice:
+  snacktrackerapi:
       build:
-        dockerfile: snack_tracker_service/Dockerfile
+        dockerfile: snack_tracker_api/Dockerfile
         context: .
       ports:
           - "8080:80"
@@ -11,7 +11,10 @@ services:
           - "8082:82"
       env_file: ./snack_tracker_service/local.env
       volumes:
-        - ./snack_tracker_service/src/snacks.maidbot.io/apps/snacktrackerapi/assets:/go/src/app/src/snacks.maidbot.io/apps/snacktrackerapi/assets
+        # Enable client tweaks without relaoding container
+        - ./snack_tracker_api/src/snacks.maidbot.io/apps/snacktrackerapi/assets:/go/src/app/src/snacks.maidbot.io/apps/snacktrackerapi/assets
+        # Persistent data directory between containers
+        - ./snack_tracker_api/src/snacks.maidbot.io/data/snacksdb:/go/src/app/src/snacks.maidbot.io/apps/snacktrackerapi/data/snacksdb
   #
   # test:
   #     image: fleetmanagement_snacktrackerapi:latest

@@ -210,9 +210,6 @@ func (sr *SnackTrackerApiResources) setState(w http.ResponseWriter, r *http.Requ
 					http.Error(w, err.Error(), 500)
 					return
 				}
-				// tmpl := template.Must(template.ParseFiles(ASSETS_DIR + "templates/consume_snacks.html"))
-				// tmpl.Execute(w, sr.snackTrackerState)
-				// return
 			} else {
 				log.Print("Setting new item_code in INTAKE mode")
 				sr.snackTrackerState.CodeIsNew = true
