@@ -4,7 +4,7 @@ RUN apt-get -f install -y curl
 RUN apt-get update && apt-get -f install -y sqlite3
 
 WORKDIR /go/src/app
-COPY ./snack_tracker_service .
+COPY ./snack_tracker_api .
 
 # Also get test dependencies....
 RUN go get -d -v -t ./...

@@ -9,12 +9,12 @@ services:
           - "8080:80"
           - "8081:81"
           - "8082:82"
-      env_file: ./snack_tracker_service/local.env
+      env_file: ./snack_tracker_api/local.env
       volumes:
         # Enable client tweaks without relaoding container
         - ./snack_tracker_api/src/snacks.maidbot.io/apps/snacktrackerapi/assets:/go/src/app/src/snacks.maidbot.io/apps/snacktrackerapi/assets
         # Persistent data directory between containers
-        - ./snack_tracker_api/src/snacks.maidbot.io/data/snacksdb:/go/src/app/src/snacks.maidbot.io/apps/snacktrackerapi/data/snacksdb
+        - ./snack_tracker_api/src/snacks.maidbot.io/data/snacksdb:/go/src/app/src/snacks.maidbot.io/data/snacksdb
   #
   # test:
   #     image: fleetmanagement_snacktrackerapi:latest

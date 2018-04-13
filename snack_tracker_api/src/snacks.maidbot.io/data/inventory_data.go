@@ -29,8 +29,11 @@ type InventoryData interface {
 // This factory function is your "constructor" for your data layer.
 func NewInventoryData() (InventoryData, error) {
 	data_dir := os.Getenv(DATA_DIR_ENV)
-	os.MkdirAll(data_dir, 0755)
-  os.Create(data_dir + "/inventory.db")
+	if _, err := os.Stat(data_dir + "/inventory.db"); os.IsNotExist(err) {
+		log.Print("No inventorydb; creating one!")
+		os.MkdirAll(data_dir, 0755)
+	  os.Create(data_dir + "/inventory.db")
+	}
 	fmt.Println("Using data dir : " + data_dir)
 	db, err := sql.Open("sqlite3", data_dir + "/inventory.db")
 	log.Print(err)
@@ -40,8 +43,6 @@ func NewInventoryData() (InventoryData, error) {
 	statement, stmtErr = db.Prepare("CREATE TABLE IF NOT EXISTS items (code text PRIMARY KEY, name text NOT NULL, created_at integer NOT NULL, updated_at integer NOT_NULL)")
 	log.Print(stmtErr)
 	statement.Exec()
-	db.Close()
-	db, err = sql.Open("sqlite3", data_dir + "/inventory.db")
 
 	if err != nil {
 		return nil, err
