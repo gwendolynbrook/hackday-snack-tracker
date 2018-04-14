@@ -2,8 +2,7 @@
 FROM python:2.7-stretch
 MAINTAINER Gwen Johnson <gwen@maidbot.com>
 
-RUN apt-get update && apt-get -f install -y python-pip gcc sudo
-
+RUN pip install --upgrade pip
 RUN pip install -U evdev requests
 
 # Make a directory for the script and put it there...
