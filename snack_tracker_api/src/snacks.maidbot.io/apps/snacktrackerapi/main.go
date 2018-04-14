@@ -313,6 +313,7 @@ func (sr *SnackTrackerApiResources) getState(w http.ResponseWriter, r *http.Requ
 
 func (sr *SnackTrackerApiResources) landingPageHandler(w http.ResponseWriter, r *http.Request) {
 	// TODO -- only parse once, this is to facilitate debugging.
+	sr.snackTrackerState.Mode = domain.SAFE_MODE
 	tmpl := template.Must(template.ParseFiles(ASSETS_DIR + "templates/landing.html"))
 	// TODO! Template the redirects here!
 	if r.Method != http.MethodPost {
@@ -424,7 +425,7 @@ func hwHandler(w http.ResponseWriter, r *http.Request) {
     fmt.Fprintf(w, "Hi there, I love %s!", r.URL.Path[1:])
 }
 
-var snackTrackerState = SnackTrackerState{domain.CHECKOUT_MODE, nil, PLEASE_SCAN_SNACK, nil, nil, false}
+var snackTrackerState = SnackTrackerState{domain.SAFE_MODE, nil, PLEASE_SCAN_SNACK, nil, nil, false}
 
 func main() {
   fmt.Printf("starting fleet snack tracker service \n")
