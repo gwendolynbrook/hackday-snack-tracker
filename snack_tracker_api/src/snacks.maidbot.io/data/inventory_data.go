@@ -41,7 +41,7 @@ func NewInventoryData() (InventoryData, error) {
 	fmt.Println("Using data dir : " + data_dir)
 	db, err := sql.Open("sqlite3", data_dir + "/inventory.db")
 	log.Print(err)
-	statement, stmtErr := db.Prepare("CREATE TABLE IF NOT EXISTS inventory_changes (created_at integer PRIMARY KEY, quantity integer NOT NULL, direction integer NOT NULL, item_code text NOT NULL, item_name text NOT NULL)")
+	statement, stmtErr := db.Prepare("CREATE TABLE IF NOT EXISTS inventory_changes (created_at integer PRIMARY KEY, quantity integer NOT NULL, mode integer NOT NULL, item_code text NOT NULL, item_name text NOT NULL)")
 	log.Print(stmtErr)
 	statement.Exec()
 	statement, stmtErr = db.Prepare("CREATE TABLE IF NOT EXISTS items (code text PRIMARY KEY, name text NOT NULL, created_at integer NOT NULL, updated_at integer NOT_NULL)")
@@ -83,7 +83,7 @@ func (d *inventoryData) ComputeInventoryAggregate(code string, updatedAfter int6
 	inventoryAggregate.InventoryChanges = changes
 	inventoryAggregate.Quantity = 0
 	for _, change := range changes {
-		inventoryAggregate.Quantity = inventoryAggregate.Quantity + change.Direction * change.Quantity
+		inventoryAggregate.Quantity = inventoryAggregate.Quantity + change.Mode * change.Quantity
 	}
 
 	return inventoryAggregate, nil
@@ -103,9 +103,10 @@ func (d *inventoryData) CreateInventoryChange(inventoryChange *domain.InventoryC
 		inventoryChange.ItemName = &item.Name
 	}
 
-	statement, _ := d.db.Prepare("INSERT INTO inventory_changes (quantity, direction, item_code, item_name, created_at) VALUES (?, ?, ?, ?, ?)")
+	statement, _ := d.db.Prepare("INSERT INTO inventory_changes (quantity, mode, item_code, item_name, created_at) VALUES (?, ?, ?, ?, ?)")
 	createdAt := d.currentMillis()
-  _, err :=  statement.Exec(inventoryChange.Quantity, inventoryChange.Direction, inventoryChange.ItemCode, inventoryChange.ItemName, createdAt)
+	log.Print(inventoryChange)
+  _, err :=  statement.Exec(inventoryChange.Quantity, inventoryChange.Mode, inventoryChange.ItemCode, inventoryChange.ItemName, createdAt)
 	if err != nil {
 		return nil, err
 	}
@@ -115,7 +116,7 @@ func (d *inventoryData) CreateInventoryChange(inventoryChange *domain.InventoryC
 }
 
 func (d *inventoryData) GetInventoryChangesByTime(createdAfter int64, createdBefore int64) ([]*domain.InventoryChange, error) {
-	rows, err := d.db.Query("SELECT quantity, direction, item_code, item_name, created_at FROM inventory_changes WHERE created_at>=? AND created_at<?", createdAfter, createdBefore)
+	rows, err := d.db.Query("SELECT quantity, mode, item_code, item_name, created_at FROM inventory_changes WHERE created_at>=? AND created_at<?", createdAfter, createdBefore)
 	if err != nil {
 		log.Println("Unable to get changes by date.")
 		return nil, err
@@ -124,7 +125,7 @@ func (d *inventoryData) GetInventoryChangesByTime(createdAfter int64, createdBef
 	changeList := []*domain.InventoryChange{}
 	for rows.Next() {
 		inventoryChange := new(domain.InventoryChange)
-		err = rows.Scan(&inventoryChange.Quantity, &inventoryChange.Direction, &inventoryChange.ItemCode, &inventoryChange.ItemName, &inventoryChange.CreatedAt)
+		err = rows.Scan(&inventoryChange.Quantity, &inventoryChange.Mode, &inventoryChange.ItemCode, &inventoryChange.ItemName, &inventoryChange.CreatedAt)
 		changeList = append(changeList, inventoryChange)
 	}
 
@@ -132,7 +133,7 @@ func (d *inventoryData) GetInventoryChangesByTime(createdAfter int64, createdBef
 }
 
 func (d *inventoryData) GetInventoryChangesByTimeForItem(code string, createdAfter int64, createdBefore int64) ([]*domain.InventoryChange, error) {
-	rows, err := d.db.Query("SELECT quantity, direction, item_code, item_name, created_at FROM inventory_changes WHERE created_at>=? AND created_at<? AND item_code=?", createdAfter, createdBefore, code)
+	rows, err := d.db.Query("SELECT quantity, mode, item_code, item_name, created_at FROM inventory_changes WHERE created_at>=? AND created_at<? AND item_code=?", createdAfter, createdBefore, code)
 	if err != nil {
 		log.Printf("Unable to get changes by date for item %s.", code)
 		return nil, err
@@ -141,7 +142,7 @@ func (d *inventoryData) GetInventoryChangesByTimeForItem(code string, createdAft
 	changeList := []*domain.InventoryChange{}
 	for rows.Next() {
 		inventoryChange := new(domain.InventoryChange)
-		err = rows.Scan(&inventoryChange.Quantity, &inventoryChange.Direction, &inventoryChange.ItemCode, &inventoryChange.ItemName, &inventoryChange.CreatedAt)
+		err = rows.Scan(&inventoryChange.Quantity, &inventoryChange.Mode, &inventoryChange.ItemCode, &inventoryChange.ItemName, &inventoryChange.CreatedAt)
 		changeList = append(changeList, inventoryChange)
 	}
 

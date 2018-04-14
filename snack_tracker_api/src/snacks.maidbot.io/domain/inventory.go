@@ -2,7 +2,7 @@ package domain
 
 type InventoryChange struct {
   Quantity          int       `json:"quantity"`
-  Direction         int       `json:"direction"`
+  Mode              int       `json:"mode"`
   ItemCode          string    `json:"item_code"`
   ItemName          *string   `json:"item_name"`
   CreatedAt         *int64    `json:"created_at"`

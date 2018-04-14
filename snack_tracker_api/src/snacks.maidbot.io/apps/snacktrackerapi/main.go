@@ -20,11 +20,12 @@ import (
 
 var ASSETS_DIR = "/go/src/app/src/snacks.maidbot.io/apps/snacktrackerapi/assets/"
 var CACHE_DIR = "/go/src/app/src/snacks.maidbot.io/apps/snacktrackerapi/cache/"
+var PLEASE_SCAN_SNACK = "Please Scan a Snack"
 
 type SnackTrackerState struct {
 	Mode int								`json:"mode"`
 	ItemCount *int 					`json:"item_count"`
-	ItemCode *string				`json:"item_code"`
+	ItemCode string					`json:"item_code"`
 	ItemName *string 				`json:"item_name"`
 	RemainingQuantity *int	`json:"remaining_quantity"`
 	CodeIsNew bool					`json:"code_is_new"`
@@ -125,9 +126,7 @@ func (sr *SnackTrackerApiResources) createInventoryChange(w http.ResponseWriter,
 
 func (sr *SnackTrackerApiResources) listItems(w http.ResponseWriter, r *http.Request) {
 	updatedAfter := 0
-	now := time.Now()
-	nanos := now.UnixNano()
-	updatedBefore := nanos / 1000000
+	updatedBefore := currentMillis()
 
 	items, dbErr := sr.inventoryData.GetItemsByUpdatedTime(int64(updatedAfter), updatedBefore)
 	if dbErr != nil {
@@ -148,14 +147,14 @@ func (sr *SnackTrackerApiResources) listItems(w http.ResponseWriter, r *http.Req
 
 func (sr *SnackTrackerApiResources) undoLastInventoryChange(w http.ResponseWriter, r *http.Request) {
 
-	if sr.snackTrackerState.ItemCode == nil {
+	if sr.snackTrackerState.ItemCode == PLEASE_SCAN_SNACK {
 		w.WriteHeader(http.StatusNoContent)
 		return
 	}
 
-	log.Printf("Putting back the last inventory change for %s : %s", *sr.snackTrackerState.ItemCode, *sr.snackTrackerState.ItemName)
+	log.Printf("Putting back the last inventory change for %s : %s", sr.snackTrackerState.ItemCode, *sr.snackTrackerState.ItemName)
 
-	var inventoryChange = domain.InventoryChange{-1 * (*sr.snackTrackerState.ItemCount), sr.snackTrackerState.Mode, *sr.snackTrackerState.ItemCode, nil, nil}
+	var inventoryChange = domain.InventoryChange{-1 * (*sr.snackTrackerState.ItemCount), sr.snackTrackerState.Mode, sr.snackTrackerState.ItemCode, nil, nil}
 	dbResult, dbErr := sr.inventoryData.CreateInventoryChange(&inventoryChange)
 	if dbErr != nil {
 		http.Error(w, dbErr.Error(), 500)
@@ -164,7 +163,7 @@ func (sr *SnackTrackerApiResources) undoLastInventoryChange(w http.ResponseWrite
 
 	// Marshal
 	output, err := json.Marshal(dbResult)
-	sr.snackTrackerState.ItemCode = nil
+	sr.snackTrackerState.ItemCode = PLEASE_SCAN_SNACK
 	var remaining = *sr.snackTrackerState.RemainingQuantity + -1 * (*sr.snackTrackerState.ItemCount) * sr.snackTrackerState.Mode
 	sr.snackTrackerState.RemainingQuantity = &remaining
 
@@ -179,9 +178,7 @@ func (sr *SnackTrackerApiResources) undoLastInventoryChange(w http.ResponseWrite
 
 func (sr *SnackTrackerApiResources) listInventoryChanges(w http.ResponseWriter, r *http.Request) {
 	updatedAfter := 0
-	now := time.Now()
-	nanos := now.UnixNano()
-	updatedBefore := nanos / 1000000
+	updatedBefore := currentMillis()
 
 	items, dbErr := sr.inventoryData.GetInventoryChangesByTime(int64(updatedAfter), updatedBefore)
 	if dbErr != nil {
@@ -263,9 +260,9 @@ func (sr *SnackTrackerApiResources) setState(w http.ResponseWriter, r *http.Requ
 		// HACK HACK HACK -- the meaty bits; interaction with the barcode scanner
 		if state_component == "item_code" {
 			sr.snackTrackerState.ItemCode = stateChangeState.ItemCode
-			if sr.snackTrackerState.Mode == domain.CHECKOUT_MODE {
-				log.Printf("Setting new item_code in CHECKOUT mode %s", *sr.snackTrackerState.ItemCode)
-				var inventoryChange = domain.InventoryChange{1, domain.CHECKOUT_MODE, *sr.snackTrackerState.ItemCode, nil, nil}
+			if sr.snackTrackerState.Mode == domain.CHECKOUT_MODE && sr.snackTrackerState.ItemCode != PLEASE_SCAN_SNACK {
+				log.Printf("Setting new item_code in CHECKOUT mode %s", sr.snackTrackerState.ItemCode)
+				var inventoryChange = domain.InventoryChange{1, domain.CHECKOUT_MODE, sr.snackTrackerState.ItemCode, nil, nil}
 				_, dbErr := sr.inventoryData.CreateInventoryChange(&inventoryChange)
 				sr.snackTrackerState.ItemName = inventoryChange.ItemName
 				if dbErr != nil {
@@ -275,15 +272,16 @@ func (sr *SnackTrackerApiResources) setState(w http.ResponseWriter, r *http.Requ
 			} else {
 				log.Print("Setting new item_code in INTAKE mode")
 				sr.snackTrackerState.CodeIsNew = true
-				item, dbErr := sr.inventoryData.GetItemByCode(*sr.snackTrackerState.ItemCode)
+				item, dbErr := sr.inventoryData.GetItemByCode(sr.snackTrackerState.ItemCode)
 				if dbErr == nil {
 					sr.snackTrackerState.ItemName = &item.Name
 				} else {
 					sr.snackTrackerState.ItemName = nil
 				}
 			}
+
 			// Compute the aggregate once we get the input
-			inventoryAggregate, dbErr := sr.inventoryData.ComputeInventoryAggregate(*sr.snackTrackerState.ItemCode, int64(0), currentMillis())
+			inventoryAggregate, dbErr := sr.inventoryData.ComputeInventoryAggregate(sr.snackTrackerState.ItemCode, int64(0), currentMillis())
 			if dbErr == nil {
 				sr.snackTrackerState.RemainingQuantity = &inventoryAggregate.Quantity
 			}
@@ -334,7 +332,7 @@ func (sr *SnackTrackerApiResources) addSnackInventoryHandler(w http.ResponseWrit
 	tmpl := template.Must(template.ParseFiles(ASSETS_DIR + "templates/add_snack_inventory.html"))
 	// TODO! Template the redirects here!
 	if r.Method != http.MethodPost {
-		sr.snackTrackerState.ItemCode = nil
+		sr.snackTrackerState.ItemCode = PLEASE_SCAN_SNACK
 		sr.snackTrackerState.ItemName = nil
 		sr.snackTrackerState.RemainingQuantity = nil
 		tmpl_err := tmpl.Execute(w, sr.snackTrackerState)
@@ -345,10 +343,19 @@ func (sr *SnackTrackerApiResources) addSnackInventoryHandler(w http.ResponseWrit
 		return
 	}
 
-	item_code := r.FormValue("item_code")
-	log.Printf("Adding inventory for item code %s", item_code)
-	if item_code == "null" {
+	r.ParseForm()
+	log.Print(r.Form)
+
+	item_code := sr.snackTrackerState.ItemCode
+	log.Print("Processig intake item_code : " + item_code + ", name : " + r.FormValue("item_name") + ", count : ", r.FormValue("item_count"))
+
+
+	if item_code == PLEASE_SCAN_SNACK || item_code == "" {
 		log.Print("Cannot accept nil item code.")
+		tmpl_err := tmpl.Execute(w, sr.snackTrackerState)
+		if(tmpl_err != nil) {
+			log.Print(tmpl_err)
+		}
 		return
 	}
 
@@ -372,7 +379,7 @@ func (sr *SnackTrackerApiResources) addSnackInventoryHandler(w http.ResponseWrit
 	stampedInventoryChange, err := sr.inventoryData.CreateInventoryChange(&inventoryChange)
 
 	if err == nil {
-		sr.snackTrackerState.ItemCode = &stampedInventoryChange.ItemCode
+		sr.snackTrackerState.ItemCode = stampedInventoryChange.ItemCode
 		sr.snackTrackerState.ItemName = stampedInventoryChange.ItemName
 		sr.snackTrackerState.ItemCount = &stampedInventoryChange.Quantity
 		if sr.snackTrackerState.RemainingQuantity == nil {
@@ -383,7 +390,7 @@ func (sr *SnackTrackerApiResources) addSnackInventoryHandler(w http.ResponseWrit
 		}
 		sr.snackTrackerState.CodeIsNew = false
 	} else {
-		fmt.Println(err)
+		log.Print(err)
 	}
 
 	tmpl_err := tmpl.Execute(w, sr.snackTrackerState)
@@ -401,7 +408,7 @@ func (sr *SnackTrackerApiResources) consumeSnacksHandler(w http.ResponseWriter, 
 	tmpl := template.Must(template.ParseFiles(ASSETS_DIR + "templates/consume_snacks.html"))
 	// TODO! Template the redirects here!
 	if r.Method != http.MethodPost {
-		sr.snackTrackerState.ItemCode = nil
+		sr.snackTrackerState.ItemCode = PLEASE_SCAN_SNACK
 		sr.snackTrackerState.ItemName = nil
 		sr.snackTrackerState.RemainingQuantity = nil
 		tmpl_err := tmpl.Execute(w, sr.snackTrackerState)
@@ -417,7 +424,7 @@ func hwHandler(w http.ResponseWriter, r *http.Request) {
     fmt.Fprintf(w, "Hi there, I love %s!", r.URL.Path[1:])
 }
 
-var snackTrackerState = SnackTrackerState{domain.CHECKOUT_MODE, nil, nil, nil, nil, false}
+var snackTrackerState = SnackTrackerState{domain.CHECKOUT_MODE, nil, PLEASE_SCAN_SNACK, nil, nil, false}
 
 func main() {
   fmt.Printf("starting fleet snack tracker service \n")

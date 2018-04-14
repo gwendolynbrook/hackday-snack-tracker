@@ -8,6 +8,7 @@ import requests
 import json
 import logging
 from functools import partial
+import fcntl
 
 env = partial(os.environ.get)
 log = logging.getLogger('barcode reader')
@@ -19,11 +20,15 @@ ch.setFormatter(formatter)
 log.addHandler(ch)
 
 class Config:
-    SNACK_SERVICE_HOST = env("SNACK_SERVICE_HOST")
     SNACK_SERVICE_HOST_DEFAULT = "http://localhost:8080"
+    SNACK_SERVICE_HOST = env("SNACK_SERVICE_HOST", SNACK_SERVICE_HOST_DEFAULT)
+    INPUT_DEVICE_DIR_DEFAULT = "/dev/input"
+    INPUT_DEVICE_DIR = env("INPUT_DEVICE_DIR", INPUT_DEVICE_DIR_DEFAULT)
+    USER = env("USER")
 
 class BarcodeReader():
     def __init__(self, config):
+        log.info(config.INPUT_DEVICE_DIR)
         self.barcode_reader = None
         self.barcode_reader_addr = None
         self.config = config
@@ -35,21 +40,19 @@ class BarcodeReader():
         log.info("Posting : {}".format(code))
         data = {"item_code": code}
         headers = {"content-type": "application/json"}
-        host = self.config.SNACK_SERVICE_HOST if self.config.SNACK_SERVICE_HOST \
-            else self.config.SNACK_SERVICE_HOST_DEFAULT
-        log.info(host)
+        log.info(self.config.SNACK_SERVICE_HOST )
         try:
-            r = requests.post(host + "/state/item_code", data=json.dumps(data), headers=headers)
+            r = requests.post(self.config.SNACK_SERVICE_HOST  + "/state/item_code", data=json.dumps(data), headers=headers)
             print(r.content)
         except requests.exceptions.ConnectionError as e:
             print("Failed to connect. Please try again.")
 
     def find_barcode_reader(self):
-        print("Listing devices.")
-        devices = [evdev.InputDevice(fn) for fn in evdev.list_devices()]
+        log.info("Listing devices.")
+        devices = [evdev.InputDevice(fn) for fn in evdev.list_devices(self.config.INPUT_DEVICE_DIR)]
 
         for device in devices:
-            log.debug(device.fn, device.name, device.phys)
+            log.info("{0}, {1}, {2}".format(device.fn, device.name, device.phys))
             if("Barcode Reader" in device.name):
                 self.barcode_reader_addr = device.fn
                 break

@@ -27,6 +27,8 @@ services:
       env_file: ./scanner_listener/local.env
       networks:
         maidbot-snacktracker:
+      devices:
+        - /dev/input:/dev/input
 
 networks:
   maidbot-snacktracker:
