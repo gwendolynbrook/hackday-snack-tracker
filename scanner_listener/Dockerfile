@@ -2,9 +2,9 @@
 FROM python:2.7-stretch
 MAINTAINER Gwen Johnson <gwen@maidbot.com>
 
-RUN apt-get update && apt-get -f install -y python-dev python-pip gcc sudo
+RUN apt-get update && apt-get -f install -y python-pip gcc sudo
 
-RUN pip install -qU --ignore-installed evdev requests
+RUN pip install -U evdev requests
 
 # Make a directory for the script and put it there...
 RUN mkdir -p /usr/local/scanner_listener
