@@ -18,7 +18,7 @@
     <h2> Maidbot Snacktracker </h2>
   </div>
   <div class="row padded form">
-    <div class="col-md-2">
+    <div class="col-xs-2">
       <form method="POST" action="/consume_snacks">
         <label for="item_code">Code From Scanner</label>
         <div id="item_code">
@@ -37,7 +37,7 @@
       </form>
     </div>
 
-    <div class="col-md-2">
+    <div class="col-xs-2">
       <div class="padded">
         <button type="button" onclick="putItBack()" class="oops-button">Oops. Put it Back.</button>
       </div>
@@ -75,7 +75,7 @@
     document.getElementById("remaining_quantity").innerHTML = "<input type=\"text\" name=\"remaining_quantity\" value=\"" + state.remaining_quantity + "\" disabled><br />";
   }
 
-  window.setInterval(refreshDiv, 50);
+  window.setInterval(refreshDiv, 500);
 </script>
 
 </body>
