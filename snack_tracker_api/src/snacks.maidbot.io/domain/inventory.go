@@ -17,6 +17,7 @@ type Item struct {
 
 type InventoryAggregate struct {
   ItemCode          string                   `json:"item_code"`
+  ItemName          string                   `json:"item_name"`
   Quantity          int                      `json:"quantity"`
   InventoryChanges  []*InventoryChange       `json:"inventory_changes"`
 }

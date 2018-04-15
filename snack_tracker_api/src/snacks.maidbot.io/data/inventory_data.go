@@ -86,6 +86,7 @@ func (d *inventoryData) ComputeInventoryAggregate(code string, updatedAfter int6
 		inventoryAggregate.Quantity = inventoryAggregate.Quantity + change.Mode * change.Quantity
 	}
 
+	inventoryAggregate.ItemName = *changes[0].ItemName
 	return inventoryAggregate, nil
 }
 
@@ -116,7 +117,8 @@ func (d *inventoryData) CreateInventoryChange(inventoryChange *domain.InventoryC
 }
 
 func (d *inventoryData) GetInventoryChangesByTime(createdAfter int64, createdBefore int64) ([]*domain.InventoryChange, error) {
-	rows, err := d.db.Query("SELECT quantity, mode, item_code, item_name, created_at FROM inventory_changes WHERE created_at>=? AND created_at<?", createdAfter, createdBefore)
+	rows, err := d.db.Query("SELECT quantity, mode, item_code, item_name, created_at FROM inventory_changes WHERE created_at>=? AND created_at<? ORDER BY created_at DESC",
+		createdAfter, createdBefore)
 	if err != nil {
 		log.Println("Unable to get changes by date.")
 		return nil, err
@@ -133,7 +135,8 @@ func (d *inventoryData) GetInventoryChangesByTime(createdAfter int64, createdBef
 }
 
 func (d *inventoryData) GetInventoryChangesByTimeForItem(code string, createdAfter int64, createdBefore int64) ([]*domain.InventoryChange, error) {
-	rows, err := d.db.Query("SELECT quantity, mode, item_code, item_name, created_at FROM inventory_changes WHERE created_at>=? AND created_at<? AND item_code=?", createdAfter, createdBefore, code)
+	rows, err := d.db.Query("SELECT quantity, mode, item_code, item_name, created_at FROM inventory_changes WHERE created_at>=? AND created_at<? AND item_code=? ORDER BY created_at DESC",
+		createdAfter, createdBefore, code)
 	if err != nil {
 		log.Printf("Unable to get changes by date for item %s.", code)
 		return nil, err
@@ -209,7 +212,7 @@ func (d *inventoryData) GetItemByName(name string) (*domain.Item, error) {
 }
 
 func (d *inventoryData) GetItemsByUpdatedTime(createdAfter int64, createdBefore int64) ([]*domain.Item, error) {
-	rows, err := d.db.Query("SELECT code, name, created_at, updated_at FROM items WHERE updated_at>=? AND updated_at<?", createdAfter, createdBefore)
+	rows, err := d.db.Query("SELECT code, name, created_at, updated_at FROM items WHERE updated_at>=? AND updated_at<? ORDER BY updated_at DESC", createdAfter, createdBefore)
 	if err != nil {
 		log.Println("Unable to get items by date.")
 		return nil, err

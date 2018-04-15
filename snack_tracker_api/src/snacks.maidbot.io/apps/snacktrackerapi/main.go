@@ -23,13 +23,14 @@ var CACHE_DIR = "/go/src/app/src/snacks.maidbot.io/apps/snacktrackerapi/cache/"
 var PLEASE_SCAN_SNACK = "Please Scan a Snack"
 
 type SnackTrackerState struct {
-	Mode int								`json:"mode"`
-	ItemCount *int 					`json:"item_count"`
-	ItemCode string					`json:"item_code"`
-	ItemName *string 				`json:"item_name"`
-	RemainingQuantity *int	`json:"remaining_quantity"`
-	CodeIsNew bool					`json:"code_is_new"`
-	Message string 					`json:"message"`
+	Mode int																			`json:"mode"`
+	ItemCount *int 																`json:"item_count"`
+	ItemCode string																`json:"item_code"`
+	ItemName *string 															`json:"item_name"`
+	RemainingQuantity *int												`json:"remaining_quantity"`
+	CodeIsNew bool																`json:"code_is_new"`
+	Message string 																`json:"message"`
+	InventorySummary []*domain.InventoryAggregate `json:"inventory_summary"`
 }
 
 type SnackTrackerApiResources struct {
@@ -78,6 +79,8 @@ func (d *SnackTrackerState) load() {
 }
 
 func (d *SnackTrackerState) save() {
+	// never cache inventory summary
+	d.InventorySummary = nil
 	stateToCache, jsonErr := json.Marshal(d)
 	if jsonErr != nil {
 		log.Print("Failed to mashal state json.")
@@ -264,6 +267,7 @@ func (sr *SnackTrackerApiResources) setState(w http.ResponseWriter, r *http.Requ
 		// HACK HACK HACK -- the meaty bits; interaction with the barcode scanner
 		if state_component == "item_code" {
 			sr.snackTrackerState.ItemCode = stateChangeState.ItemCode
+			sr.snackTrackerState.CodeIsNew = true
 			if sr.snackTrackerState.Mode == domain.CHECKOUT_MODE && sr.snackTrackerState.ItemCode != PLEASE_SCAN_SNACK {
 				log.Printf("Setting new item_code in CHECKOUT mode %s", sr.snackTrackerState.ItemCode)
 				var inventoryChange = domain.InventoryChange{1, domain.CHECKOUT_MODE, sr.snackTrackerState.ItemCode, nil, nil}
@@ -316,10 +320,8 @@ func (sr *SnackTrackerApiResources) getState(w http.ResponseWriter, r *http.Requ
 
 
 func (sr *SnackTrackerApiResources) landingPageHandler(w http.ResponseWriter, r *http.Request) {
-	// TODO -- only parse once, this is to facilitate debugging.
 	sr.snackTrackerState.Mode = domain.SAFE_MODE
 	tmpl := template.Must(template.ParseFiles(ASSETS_DIR + "templates/landing.html"))
-	// TODO! Template the redirects here!
 	if r.Method != http.MethodPost {
 		tmpl_err := tmpl.Execute(w, sr.snackTrackerState)
 		if(tmpl_err != nil) {
@@ -330,12 +332,10 @@ func (sr *SnackTrackerApiResources) landingPageHandler(w http.ResponseWriter, r 
 }
 
 func (sr *SnackTrackerApiResources) addSnackInventoryHandler(w http.ResponseWriter, r *http.Request) {
-	// TODO -- only parse once, this is to facilitate debugging.
 	var zero = 0
 	sr.snackTrackerState.Mode = domain.INTAKE_MODE
 	sr.snackTrackerState.ItemCount = &zero
 	tmpl := template.Must(template.ParseFiles(ASSETS_DIR + "templates/add_snack_inventory.html"))
-	// TODO! Template the redirects here!
 	if r.Method != http.MethodPost {
 		sr.snackTrackerState.ItemCode = PLEASE_SCAN_SNACK
 		sr.snackTrackerState.ItemName = nil
@@ -406,12 +406,10 @@ func (sr *SnackTrackerApiResources) addSnackInventoryHandler(w http.ResponseWrit
 }
 
 func (sr *SnackTrackerApiResources) consumeSnacksHandler(w http.ResponseWriter, r *http.Request) {
-	// TODO -- only parse once, this is to facilitate debugging.
 	var one = 1
 	sr.snackTrackerState.Mode = domain.CHECKOUT_MODE
 	sr.snackTrackerState.ItemCount = &one
 	tmpl := template.Must(template.ParseFiles(ASSETS_DIR + "templates/consume_snacks.html"))
-	// TODO! Template the redirects here!
 	if r.Method != http.MethodPost {
 		sr.snackTrackerState.ItemCode = PLEASE_SCAN_SNACK
 		sr.snackTrackerState.ItemName = nil
@@ -425,11 +423,50 @@ func (sr *SnackTrackerApiResources) consumeSnacksHandler(w http.ResponseWriter, 
 	}
 }
 
+func (sr *SnackTrackerApiResources) snackInventorySummaryHandler(w http.ResponseWriter, r * http.Request) {
+	// Reset the system state.
+	sr.snackTrackerState.Mode = domain.SAFE_MODE
+	sr.snackTrackerState.ItemCode = PLEASE_SCAN_SNACK
+	sr.snackTrackerState.ItemName = nil
+
+	// TODO -- better management of pagination...headers, perhaps?
+	tmpl := template.Must(template.ParseFiles(ASSETS_DIR + "templates/inventory_summary.html"))
+	var updatedAfter = int64(0)
+	var updatedBefore = currentMillis()
+
+	if r.Method != http.MethodPost {
+		// Get a list of the items
+		items, itemErr := sr.inventoryData.GetItemsByUpdatedTime(updatedAfter, updatedBefore)
+		log.Printf("There are %i items", len(items))
+		if itemErr != nil {
+			http.Error(w, itemErr.Error(), 500)
+			return
+		}
+		
+		// For each item, get the summary
+		sr.snackTrackerState.InventorySummary = nil
+		for _, item := range items {
+			inventoryAggregate, dbErr := sr.inventoryData.ComputeInventoryAggregate(item.Code, int64(0), currentMillis())
+			if dbErr != nil {
+				log.Print("DB error looking up aggregate for : " + item.Name + " = " + item.Code)
+				continue
+			}
+			sr.snackTrackerState.InventorySummary = append(sr.snackTrackerState.InventorySummary, inventoryAggregate)
+		}
+
+		tmpl_err := tmpl.Execute(w, sr.snackTrackerState)
+		if(tmpl_err != nil) {
+			log.Print(tmpl_err)
+		}
+		return
+	}
+}
+
 func hwHandler(w http.ResponseWriter, r *http.Request) {
     fmt.Fprintf(w, "Hi there, I love %s!", r.URL.Path[1:])
 }
 
-var snackTrackerState = SnackTrackerState{domain.SAFE_MODE, nil, PLEASE_SCAN_SNACK, nil, nil, false, "Snarky Message"}
+var snackTrackerState = SnackTrackerState{domain.SAFE_MODE, nil, PLEASE_SCAN_SNACK, nil, nil, false, "Snarky Message", nil}
 
 func main() {
   fmt.Printf("starting fleet snack tracker service \n")
@@ -445,6 +482,7 @@ func main() {
 	r.HandleFunc("/", api_resources.landingPageHandler)
 	r.HandleFunc("/consume_snacks", api_resources.consumeSnacksHandler)
 	r.HandleFunc("/add_snack_inventory", api_resources.addSnackInventoryHandler)
+	r.HandleFunc("/snack_inventory_summary", api_resources.snackInventorySummaryHandler)
 
 	r.HandleFunc("/ping", hwHandler)
 	r.HandleFunc("/inventory_change", api_resources.createInventoryChange).Methods("POST")
