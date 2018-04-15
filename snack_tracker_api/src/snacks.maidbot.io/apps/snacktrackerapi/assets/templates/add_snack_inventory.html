@@ -41,7 +41,7 @@
 
         <label for="item_name">New Snack Name</label>
         <div id="item_name">
-          <input onfocus="if(this.value == '<nil>') {this.value=''}" onkeypress="return noenter()" type="text" name="item_name" value={{.ItemName}}><br />
+          <input onfocus="if(this.value == '<nil>' || this.value == 'Unregistered Name') {this.value=''}"  onkeypress="return noenter()" type="text" name="item_name" value={{.ItemName}}><br />
         </div>
 
         <label for="item_count">Quantity to Add    </label>
