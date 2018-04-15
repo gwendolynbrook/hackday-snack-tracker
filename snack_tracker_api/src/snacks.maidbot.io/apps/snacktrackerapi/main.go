@@ -29,6 +29,7 @@ type SnackTrackerState struct {
 	ItemName *string 				`json:"item_name"`
 	RemainingQuantity *int	`json:"remaining_quantity"`
 	CodeIsNew bool					`json:"code_is_new"`
+	Message string 					`json:"message"`
 }
 
 type SnackTrackerApiResources struct {
@@ -148,6 +149,7 @@ func (sr *SnackTrackerApiResources) listItems(w http.ResponseWriter, r *http.Req
 func (sr *SnackTrackerApiResources) undoLastInventoryChange(w http.ResponseWriter, r *http.Request) {
 
 	if sr.snackTrackerState.ItemCode == PLEASE_SCAN_SNACK {
+		sr.snackTrackerState.ItemName = nil
 		w.WriteHeader(http.StatusNoContent)
 		return
 	}
@@ -166,6 +168,8 @@ func (sr *SnackTrackerApiResources) undoLastInventoryChange(w http.ResponseWrite
 	sr.snackTrackerState.ItemCode = PLEASE_SCAN_SNACK
 	var remaining = *sr.snackTrackerState.RemainingQuantity + -1 * (*sr.snackTrackerState.ItemCount) * sr.snackTrackerState.Mode
 	sr.snackTrackerState.RemainingQuantity = &remaining
+	var zero = 0
+	sr.snackTrackerState.ItemCount = &zero
 
 	if err != nil {
 		http.Error(w, err.Error(), 500)
@@ -425,7 +429,7 @@ func hwHandler(w http.ResponseWriter, r *http.Request) {
     fmt.Fprintf(w, "Hi there, I love %s!", r.URL.Path[1:])
 }
 
-var snackTrackerState = SnackTrackerState{domain.SAFE_MODE, nil, PLEASE_SCAN_SNACK, nil, nil, false}
+var snackTrackerState = SnackTrackerState{domain.SAFE_MODE, nil, PLEASE_SCAN_SNACK, nil, nil, false, "Snarky Message"}
 
 func main() {
   fmt.Printf("starting fleet snack tracker service \n")
