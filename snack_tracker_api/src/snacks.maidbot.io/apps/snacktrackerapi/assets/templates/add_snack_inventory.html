@@ -20,54 +20,52 @@
 
 <body>
 
-<div class="content">
-  <div class="row padded">
-    <div class="col-xs-8">
+<div class="container">
+  <div class="row">
+    <div class="col-xs-12 col-md-6">
       <h2> Add Snacks To Inventory </h2>
-    </div>
-  </div>
-  <div class="row padded form">
-    <div class="col-xs-4">
       <form method="POST" action="/add_snack_inventory">
-        <label for="item_code">Code From Scanner</label>
-        <div id="item_code">
-          <input type="text" name="item_code" value={{.ItemCode}} disabled><br />
+        <div class="form-group">
+          <label for="item_code">Code From Scanner</label>
+          <input type="text" id="item_code" class="form-control" name="item_code" value={{.ItemCode}} disabled />
         </div>
 
-        <label for="current_item_name">Current Snack Name</label>
-        <div id="current_item_name">
-          <input type="text" name="current_item_name" value={{.ItemName}} disabled><br />
+
+        <div class="form-group">
+          <label for="current_item_name">Current Snack Name</label>
+          <input id="current_item_name" class="form-control" type="text" name="current_item_name" value={{.ItemName}} disabled />
         </div>
 
-        <label for="item_name">New Snack Name</label>
-        <div id="item_name">
-          <input onclick="javascript: this.value=''"  onkeypress="return noenter()" type="text" name="item_name" value={{.ItemName}}><br />
+        <div class="form-group">
+          <label for="item_name">New Snack Name</label>
+          <input id="item_name" onclick="javascript: this.value=''"  onkeypress="return noenter()" type="text" name="item_name" class="form-control" value={{.ItemName}} />
         </div>
 
-        <label for="item_count">Quantity to Add    </label>
-        <div id="item_count">
-          <input type="text" name="item_count" onkeypress="return noenter()" value={{.ItemCount}}><br />
+        <div class="form-group">
+          <label for="item_count">Quantity to Add    </label>
+          <input id="item_count" class="form-control" type="text" name="item_count" onkeypress="return noenter()" value={{.ItemCount}}/>
         </div>
 
-        <label for="remaining_quantity">Quantity in Inventory    </label>
-        <div id="remaining_quantity">
-          <input type="text" name="remaining_quantity" value={{.RemainingQuantity}} disabled><br />
+        <div class="form-group">
+          <label for="remaining_quantity">Quantity in Inventory    </label>
+          <input id="remaining_quantity" class="form-control" type="text" name="remaining_quantity" value={{.RemainingQuantity}} disabled>
         </div>
 
         <div class="submit-button padded-top">
-          <input type="submit" value="Add Snacks!" />
+          <input type="submit" value="Add Snacks!" class="btn btn-success"/>
         </div>
 
       </form>
     </div>
-    <div class="col-xs-4">
-        <div class="padded">
-          <button type="button" onclick="putItBack()" class="oops-button">Oops. Undo.</button>
+  </div>
+    <div class="col-xs-12 col-md-6">
+        <div>
+          <button type="button" onclick="putItBack()" class="btn btn-warning">Oops. Undo.</button>
         </div>
 
-        <div class="padded">
+        <div>
           <form action="http://localhost:8080/consume_snacks" class="transition-button">
-            <input type="submit" value="Consume Snacks!" />
+            <input class="btn btn-primary" type="submit" value="Consume Snacks!" />
           </form>
       </div>
 
@@ -75,7 +73,7 @@
         {{.Message}}
       </div>
     </div>
-  </div>
+
 </div>
 
 <script type="text/javascript">

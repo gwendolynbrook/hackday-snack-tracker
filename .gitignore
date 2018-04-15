@@ -3,3 +3,4 @@ snack_tracker_api/src/snacks.maidbot.io/apps/snacktrackerapi/cache
 scanner_listener/os
 scanner_listener/sys
 scanner_listener/time
+.DS_Store
