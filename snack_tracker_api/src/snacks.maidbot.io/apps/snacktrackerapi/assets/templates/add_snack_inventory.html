@@ -100,7 +100,7 @@
     document.getElementById("current_item_name").innerHTML =  "<input onfocus=\"if(this.value == '<nil>') {this.value=''}\" type=\"text\" name=\"item_name\" value=\"" + state.item_name + "\" disabled><br />";
     document.getElementById("remaining_quantity").innerHTML =  "<input type=\"text\" name=\"remaining_quantity\" value=\"" + state.remaining_quantity + "\" disabled><br />";
     if (state.code_is_new) {
-      document.getElementById("item_name").innerHTML =  "<input type=\"text\" name=\"item_name\" value=\"" + state.item_name + "\"><br />";
+      document.getElementById("item_name").innerHTML =  "<input type=\"text\" onclick=\"javascript: this.value=''\" name=\"item_name\" value=\"" + state.item_name + "\"><br />";
       var xmlHttp = new XMLHttpRequest();
       xmlHttp.open( "POST", "http://localhost:8080/state/code_is_new", true ); // false for synchronous request
       xmlHttp.send( stateJson );
