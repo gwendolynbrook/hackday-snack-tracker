@@ -64,8 +64,11 @@
     <div class="col-xs-8">
       <ul class="form">
           {{range .InventorySummary}}
-            <li>{{.Quantity}} left of {{.ItemName}} ({{.ItemCode}})</li>
-            <canvas id={{.ItemCode}}></canvas>
+            <li>
+              {{.Quantity}} left of {{.ItemName}} ({{.ItemCode}})
+              <button type="button" onclick="drawSummaryChart(this.id)" id={{.ItemCode}} class="oops-button">Show Summary</button>
+            </li>
+            <canvas id="canvas_{{.ItemCode}}" width="0" height="0"></canvas>
           {{end}}
       </ul>
     </div>
@@ -74,5 +77,5 @@
 
 <script type="text/javascript" src="/assets/scripts/inventoryChangeChart.js"></script>
 
-</body onload="drawSummaryCharts">
+<!-- </body onload="getSnackTrackerState"> -->
 </html>

@@ -1,3 +1,6 @@
+var snackTrackerState = {};
+var inventorySummaryMap = {};
+
 function exportSummary()
 {
   // This should probably be async....
@@ -13,13 +16,23 @@ function exportSummary()
   }
 }
 
-function getStateTrackerState()
-{
+function getSnackTrackerState() {
   // This should probably be async....
   var xmlHttp = new XMLHttpRequest();
   xmlHttp.open( "GET", "http://localhost:8080/state", false );
   xmlHttp.send( null );
   return JSON.parse(xmlHttp.responseText);
+}
+
+function loadSnackTrackerState() {
+  console.log("loading state");
+  snackTrackerState = getSnackTrackerState();
+  for (ss in snackTrackerState.inventory_summary) {
+    inventorySummaryMap[snackTrackerState.inventory_summary[ss].item_code] =
+      snackTrackerState.inventory_summary[ss];
+  }
+  console.log("Made map!");
+  console.log(inventorySummaryMap);
 }
 
 function drawLine(ctx, startX, startY, endX, endY, color){
@@ -223,26 +236,28 @@ var ChangeChart = function(options, canvas, changes) {
     }
 }
 
-function drawSummaryCharts() {
-  var fullState = getStateTrackerState();
-  for (ss in fullState.inventory_summary) {
-    var chartCanvas = document.getElementById(fullState.inventory_summary[ss].item_code);
-    // Make it visually fill the positioned parent
-    chartCanvas.style.width ='100%';
-    // ...then set the internal size to match
-    chartCanvas.width  = chartCanvas.offsetWidth;
-    chartCanvas.height = 300;
-    var ssChangeChart = new ChangeChart(
-      {
-        padding:30,
-        gridYLines:10,
-        gridColor:"#84817c",
-        colors:["#eb9743","#67b6c7"]
-      },
-      chartCanvas,
-      fullState.inventory_summary[ss].inventory_changes);
-    ssChangeChart.draw();
-  }
+function drawSummaryChart(clickedId) {
+  // var fullState = getStateTrackerState();
+  var canvasId = "canvas_"+clickedId;
+  console.log(canvasId)
+  var chartCanvas = document.getElementById(canvasId);
+  // Make it visually fill the positioned parent
+  chartCanvas.style.width ='100%';
+  // ...then set the internal size to match
+  chartCanvas.width  = chartCanvas.offsetWidth;
+  chartCanvas.height = 300;
+  var ssChangeChart = new ChangeChart(
+    {
+      padding:30,
+      gridYLines:10,
+      gridColor:"#84817c",
+      colors:["#eb9743","#67b6c7"]
+    },
+    chartCanvas,
+    inventorySummaryMap[clickedId].inventory_changes);
+  ssChangeChart.draw();
 }
 
-document.onload = drawSummaryCharts();
+document.addEventListener("DOMContentLoaded", loadSnackTrackerState);
+
+// document.onload = getSnackTrackerState;
