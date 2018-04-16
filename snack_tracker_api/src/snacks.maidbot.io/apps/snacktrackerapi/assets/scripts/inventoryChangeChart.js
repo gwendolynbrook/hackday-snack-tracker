@@ -238,6 +238,10 @@ function drawSummaryChart(clickedId) {
   // var fullState = getStateTrackerState();
   var canvasId = "canvas_"+clickedId;
   console.log(canvasId)
+  if(inventorySummaryMap[clickedId].inventory_changes.length <= 1) {
+    console.log("Not enough changes");
+    return;
+  }
   var chartCanvas = document.getElementById(canvasId);
   // Make it visually fill the positioned parent
   chartCanvas.style.width ='100%';
