@@ -235,7 +235,7 @@ var ChangeChart = function(options, canvas, changes) {
             lastY = ptY;
         }
 
-      consol.log("Done drawnig");
+      console.log("Done drawnig");
 
     }
 }
