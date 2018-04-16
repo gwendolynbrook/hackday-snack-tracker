@@ -1,3 +1,16 @@
+function exportSummary()
+{
+  // This should probably be async....
+  var xmlHttp = new XMLHttpRequest();
+  xmlHttp.open( "POST", "http://localhost:8080/export_inventory_summary", false );
+  xmlHttp.send( null );
+  console.log(xmlHttp.status)
+  if(xmlHttp.status == 204) {
+    document.getElementById("export_summary").innerHTML = "<button type=\"button\" class=\"oops-button\" id=\"export_summary\" disabled>Export Summary to CSV</button>";
+    document.getElementById("export_message").innerHTML = "Export successful! CSV's have been generated!";
+  }
+}
+
 function getStateTrackerState()
 {
   // This should probably be async....

@@ -318,6 +318,24 @@ func (sr *SnackTrackerApiResources) getState(w http.ResponseWriter, r *http.Requ
 		w.Write(output)
 }
 
+func (sr *SnackTrackerApiResources) exportInventorySummary(w http.ResponseWriter, r *http.Request) {
+		// Marshal
+		if sr.snackTrackerState.Mode != domain.SAFE_MODE {
+			http.Error(w, "Cannot export unless I'm in safe mode.", 500)
+			return
+		}
+
+		writeTime := time.Now();
+		err := data.WriteSummaryCsv(sr.snackTrackerState.InventorySummary, &writeTime)
+		if err != nil {
+			http.Error(w, err.Error(), 500)
+			return
+		}
+
+		w.WriteHeader(http.StatusNoContent)
+    return
+}
+
 
 func (sr *SnackTrackerApiResources) landingPageHandler(w http.ResponseWriter, r *http.Request) {
 	sr.snackTrackerState.Mode = domain.SAFE_MODE
@@ -442,7 +460,7 @@ func (sr *SnackTrackerApiResources) snackInventorySummaryHandler(w http.Response
 			http.Error(w, itemErr.Error(), 500)
 			return
 		}
-		
+
 		// For each item, get the summary
 		sr.snackTrackerState.InventorySummary = nil
 		for _, item := range items {
@@ -485,6 +503,7 @@ func main() {
 	r.HandleFunc("/snack_inventory_summary", api_resources.snackInventorySummaryHandler)
 
 	r.HandleFunc("/ping", hwHandler)
+	r.HandleFunc("/export_inventory_summary", api_resources.exportInventorySummary).Methods("Post")
 	r.HandleFunc("/inventory_change", api_resources.createInventoryChange).Methods("POST")
 	r.HandleFunc("/inventory_change/undo", api_resources.undoLastInventoryChange).Methods("POST")
 	r.HandleFunc("/item", api_resources.createItem).Methods("POST")

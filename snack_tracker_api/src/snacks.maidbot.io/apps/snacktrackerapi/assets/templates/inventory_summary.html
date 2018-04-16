@@ -33,6 +33,11 @@
         </form>
       </div>
 
+      <div class="padded">
+        <button type="button" onclick="exportSummary()" class="oops-button" id="export_summary">Export Summary to CSV</button>
+        <div id="export_message"></div>
+      </div>
+
       <ul class="form">
           {{range .InventorySummary}}
             <li>{{.Quantity}} left of {{.ItemName}} ({{.ItemCode}})</li>
