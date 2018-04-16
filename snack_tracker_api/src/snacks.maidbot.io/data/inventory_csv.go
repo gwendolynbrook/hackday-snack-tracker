@@ -5,7 +5,6 @@ import (
     "log"
     "encoding/csv"
     "time"
-    "fmt"
 
     "app/src/snacks.maidbot.io/domain"
 )
@@ -28,18 +27,16 @@ func WriteChangeCsv(agg *domain.InventoryAggregate, writeHeaders bool, generateT
 
   if writeHeaders {
     headers := agg.InventoryChanges[0].GetHeaders()
-    fmt.Println("Going to write headers : ", headers)
     if err = writer.Write(headers); err != nil {
-      fmt.Println("Failed to write headers.")
+      log.Print("Failed to write headers.")
       return err
     }
   }
 
   for _, change := range agg.InventoryChanges {
     values := change.ToSlice()
-    fmt.Println("Going to write values : ", values)
     if err = writer.Write(values); err != nil {
-      fmt.Println("Failed to write values.")
+      log.Print("Failed to write values.")
       continue
     }
   }
@@ -71,7 +68,6 @@ func WriteSummaryCsv(aggs []*domain.InventoryAggregate, generateTime *time.Time)
 
   for _, agg := range aggs {
     values := agg.ToSlice()
-    fmt.Println("Going to write values : ", values)
     if err = writer.Write(values); err != nil {
       log.Print("Failed to write values.")
       continue
@@ -82,4 +78,12 @@ func WriteSummaryCsv(aggs []*domain.InventoryAggregate, generateTime *time.Time)
   }
 
   return nil
+}
+
+func CleanupCsvs() {
+  dataDir := os.Getenv(data.DATA_DIR_ENV)
+  csvFiles, err := filepath.Glob(dataDir + "/*.csv")
+  for _, fileName := range csvFiles {
+    os.Remove(fileName)
+  }
 }

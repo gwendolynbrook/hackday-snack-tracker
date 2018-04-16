@@ -8,6 +8,8 @@ function exportSummary()
   if(xmlHttp.status == 204) {
     document.getElementById("export_summary").innerHTML = "<button type=\"button\" class=\"oops-button\" id=\"export_summary\" disabled>Export Summary to CSV</button>";
     document.getElementById("export_message").innerHTML = "Export successful! CSV's have been generated!";
+  } else {
+    document.getElementById("export_message").innerHTML = "Export faild :-(" + xmlHttp.responseText;
   }
 }
 

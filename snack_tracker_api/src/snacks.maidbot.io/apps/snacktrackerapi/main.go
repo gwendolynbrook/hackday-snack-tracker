@@ -14,8 +14,9 @@ import (
 	"github.com/gorilla/mux"
 
 	"app/src/snacks.maidbot.io/domain"
-	// TODO: add service layer if things get more complicated....
+	// TODO: add service layer if things get more complicated and it's not hack day anymore
 	"app/src/snacks.maidbot.io/data"
+	"app/src/snacks.maidbot.io/clients"
 )
 
 var ASSETS_DIR = "/go/src/app/src/snacks.maidbot.io/apps/snacktrackerapi/assets/"
@@ -332,6 +333,7 @@ func (sr *SnackTrackerApiResources) exportInventorySummary(w http.ResponseWriter
 			return
 		}
 
+		// clients.EmailInventorySummary("gwen@maidbot.com", true)
 		w.WriteHeader(http.StatusNoContent)
     return
 }
