@@ -31,8 +31,6 @@ function loadSnackTrackerState() {
     inventorySummaryMap[snackTrackerState.inventory_summary[ss].item_code] =
       snackTrackerState.inventory_summary[ss];
   }
-  console.log("Made map!");
-  console.log(inventorySummaryMap);
 }
 
 function drawLine(ctx, startX, startY, endX, endY, color){
@@ -87,15 +85,15 @@ var ChangeChart = function(options, canvas, changes) {
 
         // Figure out date buckets
         var startMidnight = millisToDateTime(minMillis);
-        console.log(startMidnight.toLocaleString());
+        // console.log(startMidnight.toLocaleString());
         startMidnight.setHours(24, 0, 0, 0);
         var endMidnight = millisToDateTime(maxMillis);
-        console.log(endMidnight.toLocaleString());
+        // console.log(endMidnight.toLocaleString());
         endMidnight.setHours(24, 0, 0, 0);
         var maxMillis = endMidnight.getTime()
         var totalMillis = maxMillis - minMillis;
         var numDays = Math.ceil(1.0 * totalMillis / millisPerDay);
-        console.log(startMidnight.toLocaleString(), endMidnight.toLocaleString());
+        // console.log(startMidnight.toLocaleString(), endMidnight.toLocaleString());
 
         var canvasActualHeight = this.canvas.height - this.options.padding * 2;
         var canvasActualWidth = this.canvas.width - this.options.padding * 2;
