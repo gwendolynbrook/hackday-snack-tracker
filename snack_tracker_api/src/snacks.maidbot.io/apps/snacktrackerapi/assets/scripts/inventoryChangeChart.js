@@ -116,7 +116,7 @@ var ChangeChart = function(options, canvas, changes) {
           gridYSpan = maxValue - minValue;
         }
 
-        var gridYScale = Math.round(1.0 * gridYSpan / this.options.gridYLines);
+        var gridYScale = Math.ceil(1.0 * gridYSpan / this.options.gridYLines);
         var barMinValue = Math.floor(canvasActualHeight * minValue / gridYSpan);
         var barMaxValue = Math.ceil(canvasActualHeight * maxValue / gridYSpan);
 
