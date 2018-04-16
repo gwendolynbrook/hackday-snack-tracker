@@ -9,18 +9,44 @@
   <link href='http://fonts.googleapis.com/css?family=Inconsolata:400,700' rel='stylesheet' type='text/css'>
   <link rel="stylesheet" href="/assets/stylesheets/main.css">
   <link rel="icon" href="/assets/images/rosie.png">
+
+  <script type="text/javascript">
+    function noenter() {
+      return !(window.event && window.event.keyCode == 13);
+    }
+  </script>
 </head>
 <body>
 
 <div class="content">
   <div class="row padded">
-    <div class="col-xs-1">
+    <div class="col-xs-6">
+      <h2> Snack Tracker Inventory! </h2>
     </div>
-    <div class="col-xs-8">
-      <div class="row padded">
-        <h2> Snack Tracker Inventory! </h2>
+  </div>
+  <div class="row padded">
+    <div class="col-xs-4">
+      <div class="form">
+        <label for="export_summary">Export to Local CSV</label>
+        <div id="export_summary">
+          <button type="button" onclick="exportSummary()" class="oops-button">Export Summary to CSV</button>
+        </div>
+        <div id="export_message"></div>
       </div>
 
+      <form method="POST" action="/snack_inventory_summary" class="form">
+        <label for="email_address">Export to Email Address</label>
+        <div id="email_address">
+          <input type="text" name="email_address" onkeypress="return noenter()" value="" disabled><br />
+        </div>
+
+        <div class="submit-button padded-top">
+          <input type="submit" value="Send Email!" />
+          <div>{{.Message}}</div>
+        </div>
+      </form>
+    </div>
+    <div class="col-xs-4 form">
       <div class="row padded">
         <form action="http://localhost:8080/consume_snacks">
           <input type="submit" value="Consume Snacks" />
@@ -32,21 +58,16 @@
           <input type="submit" value="Add Snacks To Inventory" />
         </form>
       </div>
-
-      <div class="padded">
-        <div id="export_summary">
-          <button type="button" onclick="exportSummary()" class="oops-button">Export Summary to CSV</button>
-        </div>
-        <div id="export_message"></div>
-      </div>
-
+    </div>
+  </div>
+  <div class="row padded">
+    <div class="col-xs-8">
       <ul class="form">
           {{range .InventorySummary}}
             <li>{{.Quantity}} left of {{.ItemName}} ({{.ItemCode}})</li>
             <canvas id={{.ItemCode}}></canvas>
           {{end}}
       </ul>
-
     </div>
   </div>
 </div>

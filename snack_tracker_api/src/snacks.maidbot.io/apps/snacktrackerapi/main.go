@@ -46,6 +46,10 @@ func currentMillis() int64 {
 	return millis
 }
 
+func getSnarkyMessage() string {
+	return "Snarky message."
+}
+
 func (d *SnackTrackerState) cacheExists() bool {
 	if _, err := os.Stat(CACHE_DIR); os.IsNotExist(err) {
 		log.Print("No snack tracker cache directory; creating one!")
@@ -326,7 +330,8 @@ func (sr *SnackTrackerApiResources) exportInventorySummary(w http.ResponseWriter
 			return
 		}
 
-		writeTime := time.Now();
+		data.CleanupCsvs()
+		writeTime := time.Now()
 		err := data.WriteSummaryCsv(sr.snackTrackerState.InventorySummary, &writeTime)
 		if err != nil {
 			http.Error(w, err.Error(), 500)
@@ -355,6 +360,7 @@ func (sr *SnackTrackerApiResources) addSnackInventoryHandler(w http.ResponseWrit
 	var zero = 0
 	sr.snackTrackerState.Mode = domain.INTAKE_MODE
 	sr.snackTrackerState.ItemCount = &zero
+	sr.snackTrackerState.Message = getSnarkyMessage()
 	tmpl := template.Must(template.ParseFiles(ASSETS_DIR + "templates/add_snack_inventory.html"))
 	if r.Method != http.MethodPost {
 		sr.snackTrackerState.ItemCode = PLEASE_SCAN_SNACK
@@ -428,6 +434,7 @@ func (sr *SnackTrackerApiResources) addSnackInventoryHandler(w http.ResponseWrit
 func (sr *SnackTrackerApiResources) consumeSnacksHandler(w http.ResponseWriter, r *http.Request) {
 	var one = 1
 	sr.snackTrackerState.Mode = domain.CHECKOUT_MODE
+	sr.snackTrackerState.Message = getSnarkyMessage()
 	sr.snackTrackerState.ItemCount = &one
 	tmpl := template.Must(template.ParseFiles(ASSETS_DIR + "templates/consume_snacks.html"))
 	if r.Method != http.MethodPost {
@@ -448,6 +455,7 @@ func (sr *SnackTrackerApiResources) snackInventorySummaryHandler(w http.Response
 	sr.snackTrackerState.Mode = domain.SAFE_MODE
 	sr.snackTrackerState.ItemCode = PLEASE_SCAN_SNACK
 	sr.snackTrackerState.ItemName = nil
+	sr.snackTrackerState.Message = ""
 
 	// TODO -- better management of pagination...headers, perhaps?
 	tmpl := template.Must(template.ParseFiles(ASSETS_DIR + "templates/inventory_summary.html"))
@@ -457,7 +465,6 @@ func (sr *SnackTrackerApiResources) snackInventorySummaryHandler(w http.Response
 	if r.Method != http.MethodPost {
 		// Get a list of the items
 		items, itemErr := sr.inventoryData.GetItemsByUpdatedTime(updatedAfter, updatedBefore)
-		log.Printf("There are %i items", len(items))
 		if itemErr != nil {
 			http.Error(w, itemErr.Error(), 500)
 			return
@@ -480,6 +487,22 @@ func (sr *SnackTrackerApiResources) snackInventorySummaryHandler(w http.Response
 		}
 		return
 	}
+
+	data.CleanupCsvs()
+	writeTime := time.Now()
+	err := data.WriteSummaryCsv(sr.snackTrackerState.InventorySummary, &writeTime)
+	if err != nil {
+		sr.snackTrackerState.Message = "Error generating csvs. Try again Later."
+		tmpl.Execute(w, sr.snackTrackerState)
+		return
+	}
+
+	// send email and cleanup csvs
+	emailAddress := r.FormValue("email_address")
+	clients.EmailInventorySummary(emailAddress, true)
+	sr.snackTrackerState.Message = "Email sent to " + emailAddress
+	tmpl.Execute(w, sr.snackTrackerState)
+	return
 }
 
 func hwHandler(w http.ResponseWriter, r *http.Request) {

@@ -4,6 +4,7 @@ import (
     "os"
     "log"
     "encoding/csv"
+    "path/filepath"
     "time"
 
     "app/src/snacks.maidbot.io/domain"
@@ -81,8 +82,8 @@ func WriteSummaryCsv(aggs []*domain.InventoryAggregate, generateTime *time.Time)
 }
 
 func CleanupCsvs() {
-  dataDir := os.Getenv(data.DATA_DIR_ENV)
-  csvFiles, err := filepath.Glob(dataDir + "/*.csv")
+  dataDir := os.Getenv(DATA_DIR_ENV)
+  csvFiles, _ := filepath.Glob(dataDir + "/*.csv")
   for _, fileName := range csvFiles {
     os.Remove(fileName)
   }
