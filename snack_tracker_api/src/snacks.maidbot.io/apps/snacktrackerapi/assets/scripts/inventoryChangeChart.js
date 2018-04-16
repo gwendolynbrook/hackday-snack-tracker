@@ -75,7 +75,7 @@ var ChangeChart = function(options, canvas, changes) {
     this.colors = options.colors;
 
     this.draw = function(){
-        var maxValue = 0;
+        var maxValue = 1;
         var minValue = 0;
         var millisPerDay = 8.64e+7;
 
@@ -98,7 +98,7 @@ var ChangeChart = function(options, canvas, changes) {
         var canvasActualHeight = this.canvas.height - this.options.padding * 2;
         var canvasActualWidth = this.canvas.width - this.options.padding * 2;
         // bars have width of 15 mins
-        var barWidth = (canvasActualWidth) / (numDays * 24 * 15);
+        var barWidth = Math.round((canvasActualWidth) / (numDays * 24 * 15));
 
         // Get max and min value of the sum.
         var sum = 0;
@@ -117,12 +117,13 @@ var ChangeChart = function(options, canvas, changes) {
         }
 
         var gridYScale = Math.round(1.0 * gridYSpan / this.options.gridYLines);
-        var barMinValue = canvasActualHeight * minValue / gridYSpan;
-        var barMaxValue = canvasActualHeight * maxValue / gridYSpan;
+        var barMinValue = Math.floor(canvasActualHeight * minValue / gridYSpan);
+        var barMaxValue = Math.ceil(canvasActualHeight * maxValue / gridYSpan);
 
         // label day buckets
         var dateMillisValue = startMidnight.getTime();
         while(dateMillisValue <= maxMillis) {
+          console.log("loop 1 -- x ticks");
           var changeTimePct = 1.0 * (dateMillisValue - minMillis) / totalMillis;
           var date = new Date(dateMillisValue);
           var gridXValue = changeTimePct * canvasActualWidth;
@@ -132,7 +133,7 @@ var ChangeChart = function(options, canvas, changes) {
               gridXValue,
               gridYValue,
               gridXValue,
-              gridYValue - 20,
+              gridYValue - 10,
               this.options.gridColor
           );
           //writing grid markers
@@ -148,6 +149,7 @@ var ChangeChart = function(options, canvas, changes) {
         //drawing the positive grid lines
         var gridValue = 0;
         while (gridValue <= maxValue) {
+            console.log("loop 2 -- y+ ticks");
             var gridY = canvasActualHeight * (1 - (gridValue)/gridYSpan) + barMinValue + this.options.padding;
             drawLine(
                 this.ctx,
@@ -170,6 +172,7 @@ var ChangeChart = function(options, canvas, changes) {
         //drawing the positive grid lines
         var gridValue = 0;
         while (gridValue >= minValue) {
+            console.log("loop 3 -- y- ticks");
             var gridY = canvasActualHeight * (1 - (gridValue)/gridYSpan) + barMinValue + this.options.padding;
             drawLine(
                 this.ctx,
@@ -194,14 +197,15 @@ var ChangeChart = function(options, canvas, changes) {
         var lastX = 0;
         var lastY = 0;
         for (cc in this.changes) {
+            console.log("loop 4 -- bars and lines");
             var mode = this.changes[cc].mode
             var quantity = this.changes[cc].quantity
             sum = sum + mode * quantity
             var barHeight = Math.round( canvasActualHeight * sum / gridYSpan);
             var changeTimePct = 1.0 * (this.changes[cc].created_at - minMillis) / totalMillis;
             var barXIndex = changeTimePct * canvasActualWidth;
-            var rectX = this.options.padding + barXIndex;
-            var rectY = this.canvas.height - barHeight + barMinValue - this.options.padding;
+            var rectX = Math.round(this.options.padding + barXIndex);
+            var rectY = Math.round(this.canvas.height - barHeight + barMinValue - this.options.padding);
             var ptX = rectX;
             var ptY = rectY;
             if(sum < 0) {
@@ -231,6 +235,8 @@ var ChangeChart = function(options, canvas, changes) {
             lastY = ptY;
         }
 
+      consol.log("Done drawnig");
+
     }
 }
 
@@ -238,10 +244,6 @@ function drawSummaryChart(clickedId) {
   // var fullState = getStateTrackerState();
   var canvasId = "canvas_"+clickedId;
   console.log(canvasId)
-  if(inventorySummaryMap[clickedId].inventory_changes.length <= 1) {
-    console.log("Not enough changes");
-    return;
-  }
   var chartCanvas = document.getElementById(canvasId);
   // Make it visually fill the positioned parent
   chartCanvas.style.width ='100%';
