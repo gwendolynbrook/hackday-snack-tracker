@@ -13,7 +13,7 @@ type InventoryChange struct {
 }
 
 func (c *InventoryChange) GetHeaders() []string {
-  return []string{"quantity", "mode", "item_code", "item_name", "create_at"}
+  return []string{"quantity", "mode", "item_code", "item_name", "created_at"}
 }
 
 func (c *InventoryChange) ToSlice() []string {
