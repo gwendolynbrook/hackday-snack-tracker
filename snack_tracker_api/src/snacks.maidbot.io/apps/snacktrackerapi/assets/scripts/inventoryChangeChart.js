@@ -123,7 +123,7 @@ var ChangeChart = function(options, canvas, changes) {
         // label day buckets
         var dateMillisValue = startMidnight.getTime();
         while(dateMillisValue <= maxMillis) {
-          console.log("loop 1 -- x ticks");
+          // console.log("loop 1 -- x ticks");
           var changeTimePct = 1.0 * (dateMillisValue - minMillis) / totalMillis;
           var date = new Date(dateMillisValue);
           var gridXValue = changeTimePct * canvasActualWidth;
@@ -149,7 +149,7 @@ var ChangeChart = function(options, canvas, changes) {
         //drawing the positive grid lines
         var gridValue = 0;
         while (gridValue <= maxValue) {
-            console.log("loop 2 -- y+ ticks");
+            // console.log("loop 2 -- y+ ticks");
             var gridY = canvasActualHeight * (1 - (gridValue)/gridYSpan) + barMinValue + this.options.padding;
             drawLine(
                 this.ctx,
@@ -172,7 +172,7 @@ var ChangeChart = function(options, canvas, changes) {
         //drawing the positive grid lines
         var gridValue = 0;
         while (gridValue >= minValue) {
-            console.log("loop 3 -- y- ticks");
+            // console.log("loop 3 -- y- ticks");
             var gridY = canvasActualHeight * (1 - (gridValue)/gridYSpan) + barMinValue + this.options.padding;
             drawLine(
                 this.ctx,

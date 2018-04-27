@@ -16,7 +16,7 @@ func EmailInventorySummary(toAddress string, cleanUp bool) {
   csvFiles, err := filepath.Glob(dataDir + "/*.csv")
 
   e := email.NewEmail()
-  e.From = "Maidbot Snacktracker <gwen@maidbot.com>"
+  e.From = "Maidbot Snacktracker <mbsnacktracker@gmail.com>"
   e.To = []string{toAddress}
   e.Cc = []string{"gwen@maidbot.com"}
   e.Subject = "Snacktracker Summary!"
